@@ -1,0 +1,14 @@
+merge_method: dare_ties
+base_model: base.pth
+models:
+  - model: DIOR-base-10-50.087.pth
+    parameters:
+      density: 0.6
+      weight: 0.5
+  - model: DIOR-inc-14-50.134.pth
+    parameters:
+      density: 0.6
+      weight: 0.5
+parameters:
+  normalize: true
+dtype: float32

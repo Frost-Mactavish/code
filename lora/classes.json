@@ -1,0 +1,41 @@
+{
+    "DIOR": {
+        "airplane": 1,
+        "baseballfield": 2,
+        "bridge": 3,
+        "groundtrackfield": 4,
+        "vehicle": 5,
+        "ship": 6,
+        "tenniscourt": 7,
+        "airport": 8,
+        "chimney": 9,
+        "dam": 10,
+        "basketballcourt": 11,
+        "Expressway-Service-area": 12,
+        "Expressway-toll-station": 13,
+        "golffield": 14,
+        "harbor": 15,
+        "overpass": 16,
+        "stadium": 17,
+        "storagetank": 18,
+        "trainstation": 19,
+        "windmill": 20
+    },
+    "DOTA": {
+        "plane": 1,
+        "baseball diamond": 2,
+        "bridge": 3,
+        "ground track field": 4,
+        "small vehicle": 5,
+        "large vehicle": 6,
+        "ship": 7,
+        "tennis court": 8,
+        "basketball court": 9,
+        "storage tank": 10,
+        "soccer ball field": 11,
+        "roundabout": 12,
+        "harbor": 13,
+        "swimming pool": 14,
+        "helicopter": 15
+    }
+}
