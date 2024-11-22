@@ -17,14 +17,12 @@ with open('config.json') as f:
 
 def load_weights(weight_path: str):
     '''
-
     Args:
-        weight_path:
+        weight_path (str): abs path to the weight
 
     Returns:
-
+        model with state dict of specified weight
     '''
-
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn_v2()
 
     weight_dict = torch.load(weight_path, map_location='cpu', weights_only=True)
@@ -112,7 +110,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--test_mode', default='test', help='test or inference')
-    parser.add_argument('--weight_filename', default='DIOR-base-10-50.087.pth', help='name of weight file to load with')
+    parser.add_argument('--weight_filename', default='DIOR-base-10-50.087.pth', help='filename of weight')
     parser.add_argument('--phase', default='base', help='base, inc or joint test')
 
     args = parser.parse_args()

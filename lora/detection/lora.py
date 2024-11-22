@@ -45,6 +45,7 @@ class LoRALinear(nn.Module):
         lora_out = self.lora(x)
         return self.base_layer(x) + self.lora(x)
 
+
 class LoRAConv2d(nn.Module):
     def __init__(self, conv2d_layer, rank=4, alpha=1):
         pass
@@ -55,31 +56,31 @@ class LoRAConv2d(nn.Module):
 
 def convert_to_lora(model: nn.Module):
     '''
-    recursively search the model architecture
+    recursively search the model architecture and
     replace all nn.Linear and nn.Conv2d layer with corresponding LoRALayer
 
-    :param model: the model whose nn.Linear and nn.Conv2d layers to be replaced
-    :return: None
+    Args:
+        model (nn.Module): model to be converted
     '''
-
     for name, child in model.named_children():
         if len(list(child.children())) > 0:
             convert_to_lora(child)
         if isinstance(child, nn.Linear):
-            # model._modules[name] = LoRALinear(child)
-            setattr(model, name, LoRALinear(child))
+            setattr(model, name, LoRALinear(child))         # same as model._modules[name] = LoRALinear(child)
         if isinstance(child, nn.Conv2d):
             setattr(model, name, LoRAConv2d(child))
 
 
 def expand_classifier(ckpt_list: list):
     '''
-    expand cls head of multiple detection models
+    merge classification head of multiple detection models
 
-    :param ckpt_list: the list of model checkpoints to be expanded
-    :return: expanded 'roi_heads.box_predictor.cls_score.weight' and 'roi_heads.box_predictor.cls_score.bias' weight
+    Args:
+        ckpt_list (list): state_dict of detection ckpts, assembled in list
+
+    Returns:
+        classifier weight and bias concatenated in dim=0, assembled in list
     '''
-
     cls_weight_list = [ckpt.state_dict()['roi_heads.box_predictor.cls_score.weight'] for ckpt in ckpt_list]
     cls_bias_list = [ckpt.state_dict()['roi_heads.box_predictor.cls_score.bias'] for ckpt in ckpt_list]
     return torch.cat(cls_weight_list, dim=0), torch.cat(cls_bias_list, dim=0)
@@ -87,15 +88,16 @@ def expand_classifier(ckpt_list: list):
 
 def safetensors_to_pth(target_dir: str):
     '''
-    Convert safetensors files to pytorch pth files.
+    convert safetensors format to pth format
+    it will deal with all safetensors files in the specified target_dir
 
-    :param target_dir: The base path where the safetensors files are located.
-    :return: None
+    Args:
+        target_dir (str):  directory where the safetensors files locate
     '''
-
     for filename in glob.glob(f"{target_dir}/*.safetensors"):
         ckpt = load_file(filename)
         torch.save(ckpt, filename.replace(".safetensors", ".pth"))
+
 
 if __name__ == '__main__':
     safetensors_to_pth('../checkpoints')

@@ -19,7 +19,14 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 with open('config.json') as f:
     config = json.load(f)["DIOR"]
 
-def create_model(num_classes=11):
+
+def create_model(num_classes: int = 11):
+    '''
+    create frcnn model with ResNet50 w/ FPN as backbone
+
+    Args:
+        num_classes (int): number of classes of dataset
+    '''
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn_v2(weights='DEFAULT')
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
@@ -55,9 +62,9 @@ def main(args):
     test_dataset = DIORIncDataset(root=root, transform=data_transform['test'], mode='test', phase=args.phase)
     dataloader = {
         'train': DataLoader(dataset=train_dataset, batch_size=train_batchSize,
-                            num_workers=20, shuffle=True, collate_fn=train_dataset.collate_fn),
+                            num_workers=20, shuffle=True, collate_fn=DIORIncDataset.collate_fn),
         'test': DataLoader(dataset=test_dataset, batch_size=test_batchSize,
-                           num_workers=20, collate_fn=test_dataset.collate_fn)
+                           num_workers=20, collate_fn=DIORIncDataset.collate_fn)
     }
 
     model = create_model().to(device)
@@ -118,7 +125,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--resume', default='', help='training state to resume training with')
-    parser.add_argument('--phase', default='inc', help='inc phase')
+    parser.add_argument('--phase', default='base', help='incremental phase')
     args = parser.parse_args()
     print(args)
 

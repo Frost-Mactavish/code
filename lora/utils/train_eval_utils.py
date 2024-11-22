@@ -3,6 +3,8 @@ import sys
 import math
 import json
 import time
+from optparse import Option
+from typing import Optional
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -43,8 +45,24 @@ STANDARD_COLORS = [
 ]
 
 
-def train_one_epoch(model, optimizer, dataloader, device, epoch, print_freq=50):
-    ''' define the training procedure for one epoch '''
+def train_one_epoch(model,
+                    optimizer,
+                    dataloader,
+                    device,
+                    epoch,
+                    print_freq: Optional[int] = 100):
+    '''
+    define the training procedure for one epoch
+    
+    Args:
+        print_freq (int, optional): interval for printing info
+
+    Returns:
+        avg_loss (float): averaged overall loss over batches
+        loss_dict (dict): loss dict of different components, including rpn and roi_head
+        now_lr: learning rate of current epoch
+    '''
+
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
@@ -149,8 +167,21 @@ def summarize(self, catId=None):
 
 
 @torch.no_grad()
-def evaluate(model, dataloader, device, phase, print_feq):
-    ''' evaluate performance of detector using coco api '''
+def evaluate(model,
+             dataloader,
+             device,
+             phase: str,
+             print_feq: Optional[int] = 100):
+    '''
+    define procedure of test process
+
+    Args:
+        phase (str): base, inc or joint
+        print_feq (): 
+
+    Returns:
+        coco_info (list): list of evalution stats
+    '''
     cpu_device = torch.device("cpu")
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = "Test: "
