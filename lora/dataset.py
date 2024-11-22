@@ -69,9 +69,9 @@ class DIORIncDataset(Dataset):
             data = self.parse_xml_to_dict(xml)['annotation']
             count = 0
             for obj in data['object']:
-                if obj['name'] not in self.class_dict.keys():
-                    continue
-                count += 1
+                if obj['name'] in self.class_dict.keys():
+                    count += 1
+
             if count == 0:
                 self.xml_list.remove(xml_path)
 
@@ -88,21 +88,19 @@ class DIORIncDataset(Dataset):
         labels = []
         iscrowd = []
         for obj in data['object']:
-            if obj['name'] not in self.class_dict.keys():
-                continue
+            if obj['name'] in self.class_dict.keys():
+                obj_class = self.class_dict[obj['name']]
 
-            obj_class = self.class_dict[obj['name']]
+                xmin = float(obj["bndbox"]["xmin"])
+                xmax = float(obj["bndbox"]["xmax"])
+                ymin = float(obj["bndbox"]["ymin"])
+                ymax = float(obj["bndbox"]["ymax"])
+                if xmax <= xmin or ymax <= ymin:
+                    continue
 
-            xmin = float(obj["bndbox"]["xmin"])
-            xmax = float(obj["bndbox"]["xmax"])
-            ymin = float(obj["bndbox"]["ymin"])
-            ymax = float(obj["bndbox"]["ymax"])
-            if xmax <= xmin or ymax <= ymin:
-                continue
-
-            boxes.append([xmin, ymin, xmax, ymax])
-            labels.append(obj_class)
-            iscrowd.append(0)
+                boxes.append([xmin, ymin, xmax, ymax])
+                labels.append(obj_class)
+                iscrowd.append(0)
 
         boxes = torch.as_tensor(boxes, dtype=torch.float32)
         labels = torch.as_tensor(labels, dtype=torch.int64)
