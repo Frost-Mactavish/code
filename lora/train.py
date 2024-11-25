@@ -20,7 +20,7 @@ with open('config.json') as f:
     config = json.load(f)["DIOR"]
 
 
-def create_model(num_classes: int = 11):
+def create_model(num_classes: int ):
     '''
     create frcnn model with ResNet50 w/ FPN as backbone
 
@@ -29,7 +29,7 @@ def create_model(num_classes: int = 11):
     '''
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn_v2(weights='DEFAULT')
     in_features = model.roi_heads.box_predictor.cls_score.in_features
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes+1)
 
     model.load_state_dict(torch.load('checkpoints/DIOR-base-10-50.087.pth', map_location=torch.device('cpu'), weights_only=True))
 
@@ -44,6 +44,7 @@ def main(args):
     total_epoch = config['epoch']
     model_savedir = config['savedir']
     print_feq = config['print_feq']
+    warmup_epoch = config['warmup_epoch']
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     tb_logger = SummaryWriter(log_dir='./tb_logger/', flush_secs=60)
@@ -69,7 +70,8 @@ def main(args):
                            num_workers=20, collate_fn=DIORIncDataset.collate_fn)
     }
 
-    model = create_model().to(device)
+    num_classes = len(train_dataset.class_dict)
+    model = create_model(num_classes).to(device)
 
     finetune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4' ]
     if args.mode == 'finetune':
@@ -84,7 +86,6 @@ def main(args):
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=5e-3, momentum=0.9, weight_decay=5e-4)
 
-    warmup_epoch = 5
     lr_scheduler = timm.scheduler.CosineLRScheduler(optimizer, t_initial=total_epoch, lr_min=1e-6,
                                                     warmup_t=warmup_epoch, warmup_lr_init=1e-4)
 
@@ -107,6 +108,12 @@ def main(args):
                                               print_freq=print_feq)
         lr_scheduler.step(epoch)
 
+        # add tensorboard records
+        tb_logger.add_scalar('loss', loss, epoch)
+        tb_logger.add_scalar('lr', lr, epoch)
+        for k, v in loss_dict.items():
+            tb_logger.add_scalar(k, v, epoch)
+
         if epoch > warmup_epoch:
             # coco_info (list): mAP@[0.5:0,95], mAP@0.5, mAP@0.75, ...
             coco_info = evaluate(model=model,
@@ -118,12 +125,9 @@ def main(args):
             test_map.append(mAP)
 
             # add tensorboard records
-            tb_logger.add_scalar('loss', loss, epoch)
-            tb_logger.add_scalar('lr', lr, epoch)
             tb_logger.add_scalar('mAP@[0.5:0.95]', mAP, epoch)
             tb_logger.add_scalar('mAP@0.5', mAP50, epoch)
-            for k,v in loss_dict.items():
-                tb_logger.add_scalar(k, v, epoch)
+
 
             # save weights
             if mAP == sorted(test_map)[-1]:

@@ -1,6 +1,7 @@
 {
     "DIOR": {
         "epoch": 15,
+        "warmup_epoch": 5,
         "train_batchSize": 8,
         "test_batchSize": 8,
         "mean": [0.3856, 0.3973, 0.3619],
@@ -11,8 +12,9 @@
     },
     "DOTA": {
         "epoch": 20,
+        "warmup_epoch": 5,
         "train_batchSize": 8,
-        "test_batchSize": 16,
+        "test_batchSize": 8,
         "mean": [0.3856, 0.3973, 0.3619],
         "std": [0.1998, 0.1853, 0.1866],
         "root": "/home/freddy/code/dataset/DOTA",
