@@ -1,0 +1,3 @@
+Namespace(resume='', phase='inc', mode='finetune')
+Epoch: [1]  [  0/763]  eta: 0:20:00.858401  lr: 0.000100  loss: 0.5420 (0.5420)  loss_classifier: 0.3337 (0.3337)  loss_box_reg: 0.0913 (0.0913)  loss_objectness: 0.1047 (0.1047)  loss_rpn_box_reg: 0.0122 (0.0122)  time: 1.5739  data: 0.8215  max mem: 5955
+Epoch: [1]  [250/763]  eta: 0:03:25.791671  lr: 0.000100  loss: 0.3858 (0.6818)  loss_classifier: 0.2222 (0.4165)  loss_box_reg: 0.0937 (0.1086)  loss_objectness: 0.0619 (0.1374)  loss_rpn_box_reg: 0.0079 (0.0193)  time: 0.3969  data: 0.0016  max mem: 6087

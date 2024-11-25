@@ -107,33 +107,34 @@ def main(args):
                                               print_freq=print_feq)
         lr_scheduler.step(epoch)
 
-        # coco_info (list): mAP@[0.5:0,95], mAP@0.5, mAP@0.75, ...
-        coco_info = evaluate(model=model,
-                             dataloader=dataloader['test'],
-                             device=device,
-                             phase=args.phase,
-                             print_feq=print_feq)
-        mAP50, mAP = coco_info[1], coco_info[0]
-        test_map.append(mAP)
+        if epoch > warmup_epoch:
+            # coco_info (list): mAP@[0.5:0,95], mAP@0.5, mAP@0.75, ...
+            coco_info = evaluate(model=model,
+                                 dataloader=dataloader['test'],
+                                 device=device,
+                                 phase=args.phase,
+                                 print_feq=print_feq)
+            mAP50, mAP = coco_info[1], coco_info[0]
+            test_map.append(mAP)
 
-        # add tensorboard records
-        tb_logger.add_scalar('loss', loss, epoch)
-        tb_logger.add_scalar('lr', lr, epoch)
-        tb_logger.add_scalar('mAP@[0.5:0.95]', mAP, epoch)
-        tb_logger.add_scalar('mAP@0.5', mAP50, epoch)
-        for k,v in loss_dict.items():
-            tb_logger.add_scalar(k, v, epoch)
+            # add tensorboard records
+            tb_logger.add_scalar('loss', loss, epoch)
+            tb_logger.add_scalar('lr', lr, epoch)
+            tb_logger.add_scalar('mAP@[0.5:0.95]', mAP, epoch)
+            tb_logger.add_scalar('mAP@0.5', mAP50, epoch)
+            for k,v in loss_dict.items():
+                tb_logger.add_scalar(k, v, epoch)
 
-        # save weights
-        if mAP == sorted(test_map)[-1] and epoch > warmup_epoch:
-            save_files = {
-                'model': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'lr_scheduler': lr_scheduler.state_dict(),
-                'epoch': epoch,
-            }
-            torch.save(save_files,
-                       os.path.join(model_savedir, f"DIOR-{args.mode}-{epoch}-{mAP*100:.4f}-{mAP50*100:.4f}.pth"))
+            # save weights
+            if mAP == sorted(test_map)[-1]:
+                save_files = {
+                    'model': model.state_dict(),
+                    'optimizer': optimizer.state_dict(),
+                    'lr_scheduler': lr_scheduler.state_dict(),
+                    'epoch': epoch,
+                }
+                torch.save(save_files,
+                           os.path.join(model_savedir, f"DIOR-{args.mode}-{epoch}-{mAP*100:.4f}-{mAP50*100:.4f}.pth"))
 
 
 if __name__ == '__main__':

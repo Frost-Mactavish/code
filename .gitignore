@@ -3,7 +3,8 @@
 !/dataset/script
 *.pth
 *.safetensors
-*tfevents*
+events.out.tfevents.*
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
