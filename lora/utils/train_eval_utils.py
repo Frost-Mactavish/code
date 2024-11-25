@@ -177,7 +177,7 @@ def evaluate(model,
 
     Args:
         phase (str): base, inc or joint
-        print_feq (): 
+        print_feq (int, Optional): interval for printing logs
 
     Returns:
         coco_info (list): list of evalution stats
@@ -190,8 +190,8 @@ def evaluate(model,
     iou_types = _get_iou_types(model)
     coco_evaluator = CocoEvaluator(coco, iou_types)
 
-    from dataset import DIOR_class_dict
-    class_dict = DIOR_class_dict[phase]
+    from dataset import get_class_dict
+    class_dict = get_class_dict('DIOR', phase)
     category_index = {v: k for k, v in class_dict.items()}
 
     for i, [image, targets] in enumerate(metric_logger.log_every(dataloader, print_feq, header)):
@@ -225,6 +225,8 @@ def evaluate(model,
     coco_evaluator.accumulate()
     coco_evaluator.summarize()
 
+    # pycocotools calc AvergePrecision for each class
+    # ------------------------------------------------
     coco_eval = coco_evaluator.coco_eval["bbox"]
     # calculate COCO info for all classes
     coco_stats, print_coco = summarize(coco_eval)
@@ -237,6 +239,9 @@ def evaluate(model,
 
     print_voc = "\n".join(voc_map_info_list)
     print(print_voc)
+
+    # ------------------------------------------------
+    # end of calc AP for each class
 
     coco_info = coco_evaluator.coco_eval[iou_types[0]].stats.tolist()  # numpy to list
 

@@ -1,47 +1,81 @@
 import os
-import glob
 import json
 import copy
+from glob import glob
+from typing import Optional
+
 from PIL import Image
 import xml.etree.ElementTree as ET
 
 import torch
-from torch.utils.data import Dataset
-
-DIOR = {
-    'joint': ("airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
-              "ship", "tenniscourt", "airport", "chimney", "dam",
-              "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
-              "overpass", "stadium", "storagetank", "trainstation", "windmill"),
-
-    'base': ("airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
-             "ship", "tenniscourt", "airport", "chimney", "dam"),
-
-    'inc': ("basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
-            "overpass", "stadium", "storagetank", "trainstation", "windmill")
-}
-
-DOTA = {
-    'joint': ("plane", "baseball diamond", "bridge", "ground track field", "small vehicle",
-              "large vehicle", "ship", "tennis court", "basketball court", "storage tank",
-              "soccer ball field", "roundabout", "harbor", "swimming pool", "helicopter"),
-
-    'base': ("plane", "baseball diamond", "bridge", "ground track field", "small vehicle",
-              "large vehicle", "ship", "tennis court"),
-
-    'inc': ("basketball court", "storage tank", "soccer ball field", "roundabout",
-            "harbor", "swimming pool", "helicopter")
-}
-
-DIOR_class_dict = {k: {str: (i+1) for i, str in enumerate(DIOR[k])} for k in DIOR.keys()}
-
-DOTA_class_dict = {k: {str: (i+1) for i, str in enumerate(DOTA[k])} for k in DOTA.keys()}
+from torchvision import transforms
+from torch.utils.data import Dataset, DataLoader
 
 
-# filter classes for train and test during both base and inc phases
-# set "mode='test' and phase='joint'" to evaluate the final model
+def get_class_dict(dataset_name: str, phase: str):
+    '''
+    map class string to number, given dataset name and training phase
+
+    Args:
+        dataset_name (str): name of dataset, i.e. 'DOTA' or 'DIOR'
+        phase (str): phase of training, i.e. 'joint', 'base', 'inc'
+
+    Returns:
+        dict mapping class string to number, as specified above
+    '''
+
+    DIOR = {
+        'joint': ("airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
+                  "ship", "tenniscourt", "airport", "chimney", "dam",
+                  "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
+                  "overpass", "stadium", "storagetank", "trainstation", "windmill"),
+
+        'base': ("airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
+                 "ship", "tenniscourt", "airport", "chimney", "dam"),
+
+        'inc': ("basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
+                "overpass", "stadium", "storagetank", "trainstation", "windmill")
+    }
+
+    DOTA = {
+        'joint': ("plane", "baseball diamond", "bridge", "ground track field", "small vehicle",
+                  "large vehicle", "ship", "tennis court", "basketball court", "storage tank",
+                  "soccer ball field", "roundabout", "harbor", "swimming pool", "helicopter"),
+
+        'base': ("plane", "baseball diamond", "bridge", "ground track field", "small vehicle",
+                 "large vehicle", "ship", "tennis court"),
+
+        'inc': ("basketball court", "storage tank", "soccer ball field", "roundabout",
+                "harbor", "swimming pool", "helicopter")
+    }
+
+    if dataset_name not in ['DOTA', 'DIOR'] or phase not in ['joint', 'base', 'inc']:
+        raise ValueError('illegal dataset_name or phase')
+    dataset = eval(dataset_name)
+
+    return {k: {str: (i+1) for i, str in enumerate(dataset[k])} for k in dataset.keys()}[phase]
+
+
 class DIORIncDataset(Dataset):
-    def __init__(self, root, transform=None, mode='train', phase='base'):
+    '''
+    Args:
+        root (str): root directory of dataset -> path to fetch data
+        transform (object): organize data transform pipeline, likes of torchvision.transforms.Compose
+        dataset (str): name of dataset -> get_class_dict()
+        mode (str): train or test -> what data to fetch
+        phase (str): incremental phase -> whether or not filter classes
+    '''
+    def __init__(self, root, transform=None, dataset='DIOR', mode='train', phase='base'):
+
+        if dataset not in ['DIOR', 'DOTA']:
+            raise ValueError('illegal dataset value')
+
+        if mode not in ['train', 'test']:
+            raise ValueError('illegal mode value')
+
+        if phase not in ['joint', 'base', 'inc']:
+            raise ValueError('illegal phase value')
+
         self.img_dir = os.path.join(root, 'Images')
         self.xml_dir = os.path.join(root, 'Annotations/HBB')
         self.transform = transform
@@ -56,7 +90,7 @@ class DIORIncDataset(Dataset):
 
                 # if len(self.xml_list) == 100:       # 小规模数据加载，快速验证训练流程
                 #     break
-        self.class_dict = DIOR_class_dict[phase]
+        self.class_dict = get_class_dict(dataset, phase)
         if phase in ['base', 'inc']:
             self.filter_classes()
 
@@ -154,9 +188,16 @@ class DIORIncDataset(Dataset):
 
 
 class CalcDataset(Dataset):
-    def __init__(self, img_dir, transform=None):
-        self.transform = transform
-        self.img_list = glob.glob(img_dir + '/*.jpg')
+    '''
+    calc mean, std of dataset
+
+    Args:
+        root (str): root directory of dataset
+        normalize (bool, Optional): whether to rescale data to [0, 1]
+    '''
+    def __init__(self, root: str, normalize: Optional[bool] = True):
+        self.transform = transforms.ToTensor() if normalize else None
+        self.img_list = glob(f'{root}/*')
 
     def __getitem__(self, idx):
         img_path = self.img_list[idx]
@@ -169,23 +210,23 @@ class CalcDataset(Dataset):
     def __len__(self):
         return len(self.img_list)
 
+    def calc(self, batch_size=512):
+        dataloader = DataLoader(self, batch_size, num_workers=20)
+
+        sum, squared_sum, batch_num = 0, 0, 0
+        for img in dataloader:
+            sum += torch.mean(img, dim=[0, 2, 3])
+            squared_sum += torch.mean(img ** 2, dim=[0, 2, 3])
+            batch_num += 1
+        mean = (sum / batch_num).tolist()
+        std = ((squared_sum / batch_num - mean ** 2) ** 0.5).tolist()
+
+        return mean, std
+
 
 if __name__ == '__main__':
+    root = '/home/freddy/code/dataset/DIOR/Images'
+    dataset = CalcDataset(root)
+    mean, std = dataset.calc()
 
-    from torch.utils.data import DataLoader
-    from torchvision import transforms
-
-    # 计算数据集图像的mean,std
-    transform = transforms.ToTensor()
-    root = '/home/freddy/code/dataset/DIOR/test_ridcp'
-    dataset = CalcDataset(root, transform=transform)
-    dataloader = DataLoader(dataset, batch_size=512)
-
-    sum, squared_sum, batch_num = 0, 0, 0
-    for img in dataloader:
-        sum += torch.mean(img, dim=[0, 2, 3])
-        squared_sum += torch.mean(img ** 2, dim=[0, 2, 3])
-        batch_num += 1
-    mean = (sum / batch_num)
-    std = ((squared_sum / batch_num - mean ** 2) ** 0.5)
-    print('mean:{},std:{}'.format(mean, std))
+    print(f'mean:{mean}, std:{std}')

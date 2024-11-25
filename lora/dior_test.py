@@ -98,7 +98,7 @@ def main(args):
     elif args.test_mode == 'inference':
         srcdir = os.path.join(root, 'Images')
         dataloader = DataLoader(dataset, batch_size=5, num_workers=20, shuffle=True,
-                                collate_fn=DIORDataset.collate_fn)
+                                collate_fn=DIORIncDataset.collate_fn)
         inference(model=model,
                   dataloader=dataloader,
                   threshold=0.5,
@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--test_mode', default='test', help='test or inference')
-    parser.add_argument('--weight_filename', default='DIOR-base-10-50.087.pth', help='filename of weight')
+    parser.add_argument('--weight_filename', default='DIOR-14-49.225.pth', help='filename of weight')
     parser.add_argument('--phase', default='base', help='base, inc or joint test')
 
     args = parser.parse_args()

@@ -31,6 +31,8 @@ def create_model(num_classes: int = 11):
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
+    model.load_state_dict(torch.load('checkpoints/DIOR-base-10-50.087.pth', map_location=torch.device('cpu'), weights_only=True))
+
     return model
 
 
@@ -69,6 +71,16 @@ def main(args):
 
     model = create_model().to(device)
 
+    finetune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4' ]
+    if args.mode == 'finetune':
+        for name, param in model.named_parameters():
+            cnt = 0
+            for string in finetune_list:
+                if string not in name:
+                    cnt += 1
+            if cnt == len(finetune_list):
+                param.requires_grad = False
+
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=5e-3, momentum=0.9, weight_decay=5e-4)
 
@@ -95,18 +107,20 @@ def main(args):
                                               print_freq=print_feq)
         lr_scheduler.step(epoch)
 
+        # coco_info (list): mAP@[0.5:0,95], mAP@0.5, mAP@0.75, ...
         coco_info = evaluate(model=model,
                              dataloader=dataloader['test'],
                              device=device,
                              phase=args.phase,
                              print_feq=print_feq)
-        mAP = coco_info[0]
+        mAP50, mAP = coco_info[1], coco_info[0]
         test_map.append(mAP)
 
         # add tensorboard records
         tb_logger.add_scalar('loss', loss, epoch)
         tb_logger.add_scalar('lr', lr, epoch)
-        tb_logger.add_scalar('mAP', mAP, epoch)
+        tb_logger.add_scalar('mAP@[0.5:0.95]', mAP, epoch)
+        tb_logger.add_scalar('mAP@0.5', mAP50, epoch)
         for k,v in loss_dict.items():
             tb_logger.add_scalar(k, v, epoch)
 
@@ -119,13 +133,15 @@ def main(args):
                 'epoch': epoch,
             }
             torch.save(save_files,
-                       os.path.join(model_savedir, "DIOR-{}-{}-{:.3f}.pth".format(args.phase, epoch, mAP * 100)))
+                       os.path.join(model_savedir, f"DIOR-{args.mode}-{epoch}-{mAP*100:.4f}-{mAP50*100:.4f}.pth"))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--resume', default='', help='training state to resume training with')
-    parser.add_argument('--phase', default='base', help='incremental phase')
+    parser.add_argument('--phase', default='inc', help='incremental phase')
+    parser.add_argument('--mode', default='finetune', help='incremental phase')
+
     args = parser.parse_args()
     print(args)
 
