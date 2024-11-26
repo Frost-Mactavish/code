@@ -1,14 +1,14 @@
 {
     "DIOR": {
-        "epoch": 15,
+        "epoch": 20,
         "warmup_epoch": 5,
         "train_batchSize": 8,
         "test_batchSize": 8,
         "mean": [0.3856, 0.3973, 0.3619],
         "std": [0.1998, 0.1853, 0.1866],
         "root": "/home/freddy/code/dataset/DIOR",
-        "savedir": "/home/freddy/code/lora/checkpoints",
-        "print_feq": 250
+        "save_dir": "checkpoints",
+        "print_feq": 500
     },
     "DOTA": {
         "epoch": 20,
@@ -18,8 +18,8 @@
         "mean": [0.3856, 0.3973, 0.3619],
         "std": [0.1998, 0.1853, 0.1866],
         "root": "/home/freddy/code/dataset/DOTA",
-        "savedir": "/home/freddy/code/lora/checkpoints",
-        "print_feq": 250
+        "save_dir": "checkpoints",
+        "print_feq": 500
     }
 }
 

@@ -11,6 +11,31 @@ import torch
 from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 
+DIOR = {
+    'joint': ("airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
+              "ship", "tenniscourt", "airport", "chimney", "dam",
+              "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
+              "overpass", "stadium", "storagetank", "trainstation", "windmill"),
+
+    'base': ("airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
+             "ship", "tenniscourt", "airport", "chimney", "dam"),
+
+    'inc': ("basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
+            "overpass", "stadium", "storagetank", "trainstation", "windmill")
+}
+
+DOTA = {
+    'joint': ("plane", "baseball diamond", "bridge", "ground track field", "small vehicle",
+              "large vehicle", "ship", "tennis court", "basketball court", "storage tank",
+              "soccer ball field", "roundabout", "harbor", "swimming pool", "helicopter"),
+
+    'base': ("plane", "baseball diamond", "bridge", "ground track field", "small vehicle",
+             "large vehicle", "ship", "tennis court"),
+
+    'inc': ("basketball court", "storage tank", "soccer ball field", "roundabout",
+            "harbor", "swimming pool", "helicopter")
+}
+
 
 def get_class_dict(dataset_name: str, phase: str):
     '''
@@ -23,37 +48,16 @@ def get_class_dict(dataset_name: str, phase: str):
     Returns:
         dict mapping class string to number, as specified above
     '''
-
-    DIOR = {
-        'joint': ("airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
-                  "ship", "tenniscourt", "airport", "chimney", "dam",
-                  "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
-                  "overpass", "stadium", "storagetank", "trainstation", "windmill"),
-
-        'base': ("airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
-                 "ship", "tenniscourt", "airport", "chimney", "dam"),
-
-        'inc': ("basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
-                "overpass", "stadium", "storagetank", "trainstation", "windmill")
-    }
-
-    DOTA = {
-        'joint': ("plane", "baseball diamond", "bridge", "ground track field", "small vehicle",
-                  "large vehicle", "ship", "tennis court", "basketball court", "storage tank",
-                  "soccer ball field", "roundabout", "harbor", "swimming pool", "helicopter"),
-
-        'base': ("plane", "baseball diamond", "bridge", "ground track field", "small vehicle",
-                 "large vehicle", "ship", "tennis court"),
-
-        'inc': ("basketball court", "storage tank", "soccer ball field", "roundabout",
-                "harbor", "swimming pool", "helicopter")
-    }
-
-    if dataset_name not in ['DOTA', 'DIOR'] or phase not in ['joint', 'base', 'inc']:
-        raise ValueError('illegal dataset_name or phase')
+    assert dataset_name in ['DOTA', 'DIOR']
+    assert phase in ['joint', 'base', 'inc']
     dataset = eval(dataset_name)
 
     return {k: {str: (i+1) for i, str in enumerate(dataset[k])} for k in dataset.keys()}[phase]
+
+
+DIOR_reverse = ("basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
+        "overpass", "stadium", "storagetank", "trainstation", "windmill", "airplane", "baseballfield",
+        "bridge", "groundtrackfield", "vehicle", "ship", "tenniscourt", "airport", "chimney", "dam")
 
 
 class DIORIncDataset(Dataset):
@@ -65,16 +69,9 @@ class DIORIncDataset(Dataset):
         mode (str): train or test -> what data to fetch
         phase (str): incremental phase -> whether or not filter classes
     '''
-    def __init__(self, root, transform=None, dataset='DIOR', mode='train', phase='base'):
-
-        if dataset not in ['DIOR', 'DOTA']:
-            raise ValueError('illegal dataset value')
-
-        if mode not in ['train', 'test']:
-            raise ValueError('illegal mode value')
-
-        if phase not in ['joint', 'base', 'inc']:
-            raise ValueError('illegal phase value')
+    def __init__(self, root, transform=None, mode='train', phase='base'):
+        assert mode in ['train', 'test']
+        assert phase in ['joint', 'base', 'inc']
 
         self.img_dir = os.path.join(root, 'Images')
         self.xml_dir = os.path.join(root, 'Annotations/HBB')
@@ -88,9 +85,11 @@ class DIORIncDataset(Dataset):
                 xml = os.path.join(self.xml_dir, line.strip('\n') + '.xml')
                 self.xml_list.append(xml)
 
-                # if len(self.xml_list) == 100:       # 小规模数据加载，快速验证训练流程
-                #     break
-        self.class_dict = get_class_dict(dataset, phase)
+                if len(self.xml_list) == 100:       # 小规模数据加载，快速验证训练流程
+                    break
+
+        self.class_dict = get_class_dict('DIOR', phase)
+        # self.class_dict = {value: (i+1) for i, value in enumerate(DIOR_reverse)}
         if phase in ['base', 'inc']:
             self.filter_classes()
 
@@ -101,11 +100,11 @@ class DIORIncDataset(Dataset):
                 xml_str = f.read()
             xml = ET.fromstring(xml_str)
             data = self.parse_xml_to_dict(xml)['annotation']
+
             count = 0
             for obj in data['object']:
                 if obj['name'] in self.class_dict.keys():
                     count += 1
-
             if count == 0:
                 self.xml_list.remove(xml_path)
 
@@ -193,7 +192,7 @@ class CalcDataset(Dataset):
 
     Args:
         root (str): root directory of dataset
-        normalize (bool, Optional): whether to rescale data to [0, 1]
+        normalize (bool, optional): whether to rescale data to [0, 1]
     '''
     def __init__(self, root: str, normalize: Optional[bool] = True):
         self.transform = transforms.ToTensor() if normalize else None

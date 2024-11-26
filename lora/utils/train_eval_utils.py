@@ -15,7 +15,6 @@ import torchvision
 
 import utils.distributed_utils as utils
 from detection.coco_eval import CocoEvaluator
-from detection.coco_utils import get_coco_api_from_dataset
 
 
 STANDARD_COLORS = [
@@ -60,7 +59,7 @@ def train_one_epoch(model,
     Returns:
         avg_loss (float): averaged overall loss over batches
         loss_dict (dict): loss dict of different components, including rpn and roi_head
-        now_lr: learning rate of current epoch
+        now_lr (float): learning rate of current epoch
     '''
 
     model.train()
@@ -68,7 +67,7 @@ def train_one_epoch(model,
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     header = 'Epoch: [{}]'.format(epoch)
 
-    avg_loss = 0.0  # averaged loss over time
+    avg_loss = 0.  # averaged loss over time
     for i, [images, targets] in enumerate(metric_logger.log_every(dataloader, print_freq, header)):
         images = [image.to(device) for image in images]
         targets = [{k: v.to(device) for k, v in t.items() if not isinstance(v, str)} for t in targets]
@@ -169,6 +168,7 @@ def summarize(self, catId=None):
 @torch.no_grad()
 def evaluate(model,
              dataloader,
+             coco_gt,
              device,
              phase: str,
              print_feq: Optional[int] = 100):
@@ -176,8 +176,9 @@ def evaluate(model,
     define procedure of test process
 
     Args:
+        coco_gt (Object): Ground organized conforming to coco api
         phase (str): base, inc or joint
-        print_feq (int, Optional): interval for printing logs
+        print_feq (int, optional): interval for printing logs
 
     Returns:
         coco_info (list): list of evalution stats
@@ -186,9 +187,8 @@ def evaluate(model,
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = "Test: "
 
-    coco = get_coco_api_from_dataset(dataloader.dataset)
     iou_types = _get_iou_types(model)
-    coco_evaluator = CocoEvaluator(coco, iou_types)
+    coco_evaluator = CocoEvaluator(coco_gt, iou_types)
 
     from dataset import get_class_dict
     class_dict = get_class_dict('DIOR', phase)
