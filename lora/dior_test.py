@@ -51,7 +51,8 @@ def main(args):
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    model, phase = load_weights(weight_path).to(device)
+    model, phase = load_weights(weight_path)
+    model.to(device)
 
     data_transform = transform_.Compose([
         transform_.ToTensor(),
@@ -86,7 +87,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', default='DIOR', help='dataset name')
     parser.add_argument('--test_mode', default='map',
                         help='get map over testset or visualize detection results')
-    parser.add_argument('--filename', default='tmp/DIOR-full-12-51.173.pth',
+    parser.add_argument('--filename', default='DIOR_50_joint_72.68.pth',
                         help='filename of weight')
     args = parser.parse_args()
     print(args)

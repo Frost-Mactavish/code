@@ -238,10 +238,9 @@ def evaluate(model,
 
     # calculate voc info for every classes(IoU=0.5)
     voc_map_info_list = []
-    # TODO: too long metric print
     for i in range(len(category_index)):
         stats, _ = summarize(coco_eval, catId=i)
-        voc_map_info_list.append(" {:15}: {}".format(category_index[i + 1], stats[1]))
+        voc_map_info_list.append(" {}: {:.2f}".format(category_index[i + 1], stats[1]*100))
 
     print_voc = "\n".join(voc_map_info_list)
     print(print_voc)

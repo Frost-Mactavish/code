@@ -26,30 +26,49 @@ def create_model(backbone: str, num_classes: int):
     '''
     assert backbone in ['resnet50', 'resnet101']
 
-    if backbone == 'resnet50':
-        model = fasterrcnn_resnet50_fpn_v2(weights='DEFAULT')
-    # TODO: FPN layer missing BatchNorm2d
-    elif backbone == 'resnet101':
-        backbone = resnet.__dict__[backbone](weights='DEFAULT', norm_layer=nn.BatchNorm2d)
-        backbone = _resnet_fpn_extractor(backbone, trainable_layers=3, norm_layer=nn.BatchNorm2d)
-        # backbone = resnet_fpn_backbone(backbone_name='resnet101', weights='DEFAULT', norm_layer=nn.BatchNorm2d)
+    # if backbone == 'resnet50':
+    #     model = fasterrcnn_resnet50_fpn_v2(weights='DEFAULT')
+    # elif backbone == 'resnet101':
+    #     backbone = resnet.__dict__[backbone](weights='DEFAULT', norm_layer=nn.BatchNorm2d)
+    #     backbone = _resnet_fpn_extractor(backbone, trainable_layers=3, norm_layer=nn.BatchNorm2d)
+    #     # backbone = resnet_fpn_backbone(backbone_name='resnet101', weights='DEFAULT', norm_layer=nn.BatchNorm2d)
+    #
+    #     anchor_sizes = ((32,), (64,), (128,), (256,), (512,))
+    #     aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
+    #     rpn_anchor_generator = AnchorGenerator(anchor_sizes, aspect_ratios)
+    #
+    #     rpn_head = RPNHead(backbone.out_channels, rpn_anchor_generator.num_anchors_per_location()[0], conv_depth=2)
+    #     box_head = FastRCNNConvFCHead(
+    #         (backbone.out_channels, 7, 7), [256, 256, 256, 256], [1024], norm_layer=nn.BatchNorm2d
+    #     )
+    #
+    #     model = FasterRCNN(
+    #         backbone,
+    #         num_classes=91,
+    #         rpn_anchor_generator=rpn_anchor_generator,
+    #         rpn_head=rpn_head,
+    #         box_head=box_head
+    #     )
 
-        anchor_sizes = ((32,), (64,), (128,), (256,), (512,))
-        aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
-        rpn_anchor_generator = AnchorGenerator(anchor_sizes, aspect_ratios)
+    backbone = resnet.__dict__[backbone](weights='DEFAULT', norm_layer=nn.BatchNorm2d)
+    backbone = _resnet_fpn_extractor(backbone, trainable_layers=3, norm_layer=nn.BatchNorm2d)
 
-        rpn_head = RPNHead(backbone.out_channels, rpn_anchor_generator.num_anchors_per_location()[0], conv_depth=2)
-        box_head = FastRCNNConvFCHead(
-            (backbone.out_channels, 7, 7), [256, 256, 256, 256], [1024], norm_layer=nn.BatchNorm2d
-        )
+    anchor_sizes = ((32,), (64,), (128,), (256,), (512,))
+    aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
+    rpn_anchor_generator = AnchorGenerator(anchor_sizes, aspect_ratios)
 
-        model = FasterRCNN(
-            backbone,
-            num_classes=91,
-            rpn_anchor_generator=rpn_anchor_generator,
-            rpn_head=rpn_head,
-            box_head=box_head
-        )
+    rpn_head = RPNHead(backbone.out_channels, rpn_anchor_generator.num_anchors_per_location()[0], conv_depth=2)
+    box_head = FastRCNNConvFCHead(
+        (backbone.out_channels, 7, 7), [256, 256, 256, 256], [1024], norm_layer=nn.BatchNorm2d
+    )
+
+    model = FasterRCNN(
+        backbone,
+        num_classes=91,
+        rpn_anchor_generator=rpn_anchor_generator,
+        rpn_head=rpn_head,
+        box_head=box_head
+    )
 
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes + 1)
