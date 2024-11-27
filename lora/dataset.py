@@ -85,8 +85,8 @@ class DIORIncDataset(Dataset):
                 xml = os.path.join(self.xml_dir, line.strip('\n') + '.xml')
                 self.xml_list.append(xml)
 
-                if len(self.xml_list) == 100:       # 小规模数据加载，快速验证训练流程
-                    break
+                # if len(self.xml_list) == 100:       # 小规模数据加载，快速验证训练流程
+                #     break
 
         self.class_dict = get_class_dict('DIOR', phase)
         # self.class_dict = {value: (i+1) for i, value in enumerate(DIOR_reverse)}
