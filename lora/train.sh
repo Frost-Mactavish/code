@@ -14,7 +14,7 @@ filename="${backbone}_$(date '+%m%d-%H%M').txt"
 
 python -u train.py --device $device --dataset $dataset --backbone $backbone --phase 'joint' 2>&1 | tee log/$filename
 
-python -u train.py --device $deivce --dataset $dataset --backbone $backbone --phase 'base' 2>&1 | tee -a log/$filename
+python -u train.py --device $device --dataset $dataset --backbone $backbone --phase 'base' 2>&1 | tee -a log/$filename
 
 python -u train.py --device $device --dataset $dataset --backbone $backbone --phase 'inc' 2>&1 | tee -a log/$filename
 

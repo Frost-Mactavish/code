@@ -71,8 +71,9 @@ def main(args, tune_list):
                                                     warmup_t=warmup_epoch, warmup_lr_init=1e-4)
 
     start_epoch = 1
-    if args.resume != '':
+    if args.resume is not None:
         resume = os.path.join(save_dir, args.resume)
+        assert os.path.isfile(resume)
         checkpoint = torch.load(resume, map_location='cpu', weights_only=True)
         model.load_state_dict(checkpoint['model'])
         start_epoch = checkpoint['epoch']
@@ -132,7 +133,7 @@ if __name__ == '__main__':
     parser.add_argument('--backbone', default='resnet101', help='model backbone')
     parser.add_argument('--phase', default='joint', help='incremental phase')
     parser.add_argument('--partial', default=None, help='train part of the model')
-    parser.add_argument('--resume', default='', help='training state to resume training with')
+    parser.add_argument('--resume', default=None, help='training state to resume training with')
     args = parser.parse_args()
     print(args)
 
