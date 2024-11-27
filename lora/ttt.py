@@ -2,11 +2,15 @@ import os
 
 import torch
 import torch.nn as nn
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, fasterrcnn_resnet50_fpn_v2
+import torch.profiler
+from torchinfo import summary
 
-# model = torchvision.models.detection.fasterrcnn_resnet50_fpn_v2()
-# in_features = model.roi_heads.box_predictor.cls_score.in_features
-#
+from detection.model import create_model, freeze_module
+
+num_classes = 10
+backbone = 'resnet50'
+model = create_model(backbone, num_classes)
+
 # weight = torch.load('checkpoints/tmp/DIOR-full-12-51.173.pth', map_location='cpu', weights_only=True)
 # num_class = weight['roi_heads.box_predictor.cls_score.bias'].size(0) - 1
 #

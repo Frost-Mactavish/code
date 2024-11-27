@@ -64,33 +64,38 @@ def train_one_epoch(model,
 
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
-    metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
+    metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.2e}'))
     header = 'Epoch: [{}]'.format(epoch)
 
-    avg_loss = 0.  # averaged loss over time
+    # average loss over batches in one epoch
+    loss = {'classifier': 0.0, 'box_reg': 0.0, 'objectness': 0.0, 'rpn_box_reg': 0.0}
     for i, [images, targets] in enumerate(metric_logger.log_every(dataloader, print_freq, header)):
         images = [image.to(device) for image in images]
         targets = [{k: v.to(device) for k, v in t.items() if not isinstance(v, str)} for t in targets]
 
         loss_dict = model(images, targets)
+
+        # average 4 losses over batches
+        for loss_name, batch_loss in zip(loss.keys(), loss_dict.values()):
+            batch_loss = batch_loss.item()
+            if not math.isfinite(batch_loss):
+                print(f"Loss is {batch_loss:.4f}, training terminate")
+                sys.exit(1)
+
+            loss[loss_name] = (loss[loss_name] * i + batch_loss) / (i + 1) # update mean losses
+
         losses = sum(loss for loss in loss_dict.values())
-
-        loss_value = losses.item()
-        avg_loss = (avg_loss * i + loss_value) / (i + 1)  # update mean losses
-
-        if not math.isfinite(loss_value):
-            print("Loss is {}, stop training".format(loss_value))
-            sys.exit(1)
-
         optimizer.zero_grad()
         losses.backward()
         optimizer.step()
 
-        metric_logger.update(loss=losses, **loss_dict)
+        metric_logger.update(loss=losses, **loss)
         now_lr = optimizer.param_groups[0]["lr"]
         metric_logger.update(lr=now_lr)
 
-    return avg_loss, loss_dict, now_lr
+    aggregated_loss = sum(loss.values())
+
+    return aggregated_loss, loss, now_lr
 
 
 def summarize(self, catId=None):

@@ -58,10 +58,10 @@ def main(args, tune_list):
     }
 
     num_classes = len(train_dataset.class_dict)
-    model = create_model(num_classes + 1, args.backbone).to(device)
+    model = create_model(args.backbone, num_classes + 1).to(device)
 
     if args.partial is not None:
-        freeze_module(tune_list, model)
+        freeze_module(model, tune_list)
 
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=5e-3, momentum=0.9, weight_decay=5e-4)
@@ -124,17 +124,16 @@ def main(args, tune_list):
 
 
 if __name__ == '__main__':
-    tune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4.2' ]
-
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dataset', default='DIOR', help='dataset name')
     parser.add_argument('--backbone', default='resnet101', help='model backbone')
     parser.add_argument('--phase', default='joint', help='incremental phase')
     parser.add_argument('--partial', default=None, help='train part of the model')
     parser.add_argument('--resume', default='', help='training state to resume training with')
-
     args = parser.parse_args()
     print(args)
+
+    tune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4.2' ]
 
     main(args, tune_list)
 

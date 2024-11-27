@@ -8,7 +8,7 @@
         "std": [0.1998, 0.1853, 0.1866],
         "root": "/home/freddy/code/dataset/DIOR",
         "save_dir": "checkpoints",
-        "print_feq": 500
+        "print_feq": 2000
     },
     "DOTA": {
         "epoch": 20,
@@ -19,7 +19,7 @@
         "std": [0.1998, 0.1853, 0.1866],
         "root": "/home/freddy/code/dataset/DOTA",
         "save_dir": "checkpoints",
-        "print_feq": 500
+        "print_feq": 2000
     }
 }
 

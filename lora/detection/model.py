@@ -6,16 +6,17 @@ from safetensors.torch import load_file
 
 import torch
 import torch.nn as nn
-from torchvision.models.detection.faster_rcnn import (FastRCNNPredictor, FasterRCNN,
-                                                      FastRCNNConvFCHead, fasterrcnn_resnet50_fpn_v2)
-from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
+from torchvision.models import resnet
+from torchvision.models.detection.faster_rcnn import (FastRCNNPredictor, FastRCNNConvFCHead,
+                                                      FasterRCNN, fasterrcnn_resnet50_fpn_v2)
+from torchvision.models.detection.backbone_utils import _resnet_fpn_extractor
 from torchvision.models.detection.anchor_utils import AnchorGenerator
 from torchvision.models.detection.roi_heads import RoIHeads
 from torchvision.models.detection.rpn import RegionProposalNetwork, RPNHead
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
 
 
-def create_model(num_classes: int , backbone: str):
+def create_model(backbone: str, num_classes: int):
     '''
     create frcnn model with ResNet50 w/ FPN as backbone
 
@@ -23,10 +24,15 @@ def create_model(num_classes: int , backbone: str):
         num_classes (int): number of classes of dataset
         backbone (str): resnet50 or resnet101
     '''
+    assert backbone in ['resnet50', 'resnet101']
+
     if backbone == 'resnet50':
         model = fasterrcnn_resnet50_fpn_v2(weights='DEFAULT')
+    # TODO: FPN layer missing BatchNorm2d
     elif backbone == 'resnet101':
-        backbone = resnet_fpn_backbone(backbone_name='resnet101', weights='DEFAULT', norm_layer=nn.BatchNorm2d)
+        backbone = resnet.__dict__[backbone](weights='DEFAULT', norm_layer=nn.BatchNorm2d)
+        backbone = _resnet_fpn_extractor(backbone, trainable_layers=3, norm_layer=nn.BatchNorm2d)
+        # backbone = resnet_fpn_backbone(backbone_name='resnet101', weights='DEFAULT', norm_layer=nn.BatchNorm2d)
 
         anchor_sizes = ((32,), (64,), (128,), (256,), (512,))
         aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
@@ -129,7 +135,7 @@ def expand_classifier(ckpt_list: list[str]):
     return torch.cat(cls_weight_list, dim=0), torch.cat(cls_bias_list, dim=0)
 
 
-def freeze_module(tune_list: list[str], model: nn.Module):
+def freeze_module(model: nn.Module, tune_list: list[str]):
     '''
     Args:
         tune_list: (list[str]): list of unfreezed modules

@@ -30,7 +30,7 @@ def load_weights(weight_path: str):
     weight_dict = weight_dict['model'] if 'model' in weight_dict else weight_dict
 
     num_classes = weight_dict['roi_heads.box_predictor.cls_score.bias'].size(0) - 1
-    model = create_model(num_classes, backbone_type)
+    model = create_model(backbone_type, num_classes)
     model.load_state_dict(weight_dict)
 
     return model, phase
@@ -88,7 +88,6 @@ if __name__ == '__main__':
                         help='get map over testset or visualize detection results')
     parser.add_argument('--filename', default='tmp/DIOR-full-12-51.173.pth',
                         help='filename of weight')
-
     args = parser.parse_args()
     print(args)
 

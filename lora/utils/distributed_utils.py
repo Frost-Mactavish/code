@@ -225,7 +225,7 @@ class MetricLogger(object):
             end = time.time()
         total_time = time.time() - start_time
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-        print('{} Total time: {} ({:.4f} s / it)'.format(header,
+        print('{} Total time: {} ({:.2f} s / it)'.format(header,
                                                          total_time_str,
 
                                                          total_time / len(iterable)))
