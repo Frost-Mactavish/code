@@ -6,6 +6,7 @@ from timm import scheduler
 
 import torch
 import torch.nn as nn
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -31,7 +32,8 @@ def main(args, tune_list):
     save_dir = config['save_dir']
     print_feq = config['print_feq']
 
-    tb_logger = SummaryWriter(log_dir='tb_logger', flush_secs=60)
+    log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}'
+    tb_logger = SummaryWriter(log_dir=log_dir, flush_secs=60)
 
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
 
