@@ -33,7 +33,7 @@ def main(args, tune_list):
 
     tb_logger = SummaryWriter(log_dir='tb_logger', flush_secs=60)
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
 
     data_transform = {
         'train': transform_.Compose([
@@ -125,6 +125,7 @@ def main(args, tune_list):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--device', default='0', help='cuda device id')
     parser.add_argument('--dataset', default='DIOR', help='dataset name')
     parser.add_argument('--backbone', default='resnet101', help='model backbone')
     parser.add_argument('--phase', default='joint', help='incremental phase')

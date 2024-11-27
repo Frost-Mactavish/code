@@ -4,10 +4,17 @@ source /home/freddy/Software/miniforge/etc/profile.d/conda.sh
 
 conda activate mytorch
 
-filename="train_$(date '+%m%d-%H%M').txt"
+device=$1
 
-python -u train.py --dataset 'DIOR' --backbone 'resnet101' --phase 'joint' 2>&1 | tee log/$filename
+dataset=$2
 
-python -u train.py --dataset 'DIOR' --backbone 'resnet101' --phase 'base' 2>&1 | tee -a log/$filename
+backbone=$3
 
-python -u train.py --dataset 'DIOR' --backbone 'resnet101' --phase 'inc' 2>&1 | tee -a log/$filename
+filename="${backbone}_$(date '+%m%d-%H%M').txt"
+
+python -u train.py --device $device --dataset $dataset --backbone $backbone --phase 'joint' 2>&1 | tee log/$filename
+
+python -u train.py --device $deivce --dataset $dataset --backbone $backbone --phase 'base' 2>&1 | tee -a log/$filename
+
+python -u train.py --device $device --dataset $dataset --backbone $backbone --phase 'inc' 2>&1 | tee -a log/$filename
+
