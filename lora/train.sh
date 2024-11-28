@@ -12,7 +12,7 @@ backbone=$3
 
 log_dir="log/train_$(date '+%m%d-%H%M')"
 
-mkdir log_dir
+mkdir ${log_dir}
 
 filename="${dataset}_${backbone}_joint.txt"
 
