@@ -30,7 +30,8 @@ def main(args, tune_list):
     save_dir = config['save_dir']
     print_feq = config['print_feq']
 
-    log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}'
+    current_time = datetime.now().strftime("%m%d-%H%M")
+    log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}_{current_time}'
     tb_logger = SummaryWriter(log_dir=log_dir, flush_secs=60)
 
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
