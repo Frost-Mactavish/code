@@ -88,7 +88,6 @@ def main(args, tune_list):
                                               device=device,
                                               epoch=epoch,
                                               print_freq=print_feq)
-        # param epoch is deprecated in torch.optim.lr_scheduler
         lr_scheduler.step()
 
         # add tensorboard records
