@@ -3,6 +3,7 @@ import json
 import argparse
 from re import findall
 from timm import scheduler
+from datetime import datetime
 
 import torch
 import torch.nn as nn
@@ -17,7 +18,7 @@ from detection.coco_utils import get_coco_api_from_dataset
 from utils.train_eval_utils import train_one_epoch, evaluate
 
 torch.multiprocessing.set_sharing_strategy('file_system')
-# torch.multiprocessing.set_start_method('spawn')
+# torch.multiprocessing.set_start_method('spawn', force=True)
 
 
 def main(args, tune_list):
@@ -33,7 +34,8 @@ def main(args, tune_list):
     save_dir = config['save_dir']
     print_feq = config['print_feq']
 
-    log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}'
+    current_time = datetime.now().strftime("%m%d-%H%M")
+    log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}_{current_time}'
     tb_logger = SummaryWriter(log_dir=log_dir, flush_secs=60)
 
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
@@ -93,7 +95,8 @@ def main(args, tune_list):
                                               device=device,
                                               epoch=epoch,
                                               print_freq=print_feq)
-        lr_scheduler.step(epoch)
+        # param epoch is deprecated in torch.optim.lr_scheduler
+        lr_scheduler.step()
 
         # add tensorboard records
         tb_logger.add_scalar('loss', loss, epoch)
