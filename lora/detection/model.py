@@ -139,12 +139,12 @@ def convert_to_lora(model: nn.Module):
             setattr(model, name, LoRAConv2d(child))
 
 
-def expand_classifier(ckpt_list: list[state_dict]):
+def expand_classifier(ckpt_list: list[dict]):
     '''
     merge classification head of multiple detection models
 
     Args:
-        ckpt_list (list[state_dict]): state_dict of detection ckpts, assembled in list
+        ckpt_list (list[dict]): state_dict of detection ckpts, assembled in list
 
     Returns:
         classifier weight and bias concatenated in dim=0, assembled in list

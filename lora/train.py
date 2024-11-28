@@ -102,7 +102,6 @@ def main(args, tune_list):
                                  dataloader=dataloader['test'],
                                  coco_gt=coco_gt,
                                  device=device,
-                                 phase=args.phase,
                                  print_feq=print_feq)
             mAP50, mAP = coco_info[1], coco_info[0]
 
