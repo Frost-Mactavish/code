@@ -17,6 +17,7 @@ from detection.coco_utils import get_coco_api_from_dataset
 from utils.train_eval_utils import train_one_epoch, evaluate
 
 torch.multiprocessing.set_sharing_strategy('file_system')
+# torch.multiprocessing.set_start_method('spawn')
 
 
 def main(args, tune_list):
