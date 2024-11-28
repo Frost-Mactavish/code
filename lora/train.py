@@ -2,12 +2,11 @@ import os
 import json
 import argparse
 from re import findall
-from timm import scheduler
 from datetime import datetime
 
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -16,9 +15,6 @@ from detection.model import create_model, freeze_module
 from dataset import DIORIncDataset
 from detection.coco_utils import get_coco_api_from_dataset
 from utils.train_eval_utils import train_one_epoch, evaluate
-
-torch.multiprocessing.set_sharing_strategy('file_system')
-# torch.multiprocessing.set_start_method('spawn', force=True)
 
 
 def main(args, tune_list):
@@ -69,11 +65,8 @@ def main(args, tune_list):
         freeze_module(model, tune_list)
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=5e-3, momentum=0.9, weight_decay=5e-4)
-    # TODO: StepScheduler, larger initilizing lr
-    lr_scheduler = CosineAnnealingLR(optimizer, T_max=total_epoch, eta_min=1e-6)
-    # lr_scheduler = scheduler.CosineLRScheduler(optimizer, t_initial=total_epoch, lr_min=1e-6,
-    #                                                 warmup_t=warmup_epoch, warmup_lr_init=1e-4)
+    optimizer = torch.optim.SGD(params, lr=1e-2, momentum=0.9, weight_decay=5e-4)
+    lr_scheduler = MultiStepLR(optimizer, milestones=[10], gamma=0.1)
 
     start_epoch = 1
     if args.resume is not None:
