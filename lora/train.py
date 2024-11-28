@@ -57,9 +57,9 @@ def main(args, tune_list):
     test_dataset = DIORIncDataset(root=root, transform=data_transform['test'], mode='test', phase=args.phase)
     dataloader = {
         'train': DataLoader(dataset=train_dataset, batch_size=train_batchSize,
-                            num_workers=20, shuffle=True, collate_fn=train_dataset.collate_fn),
+                            num_workers=8, shuffle=True, collate_fn=train_dataset.collate_fn),
         'test': DataLoader(dataset=test_dataset, batch_size=test_batchSize,
-                           num_workers=20, collate_fn=test_dataset.collate_fn)
+                           num_workers=8, collate_fn=test_dataset.collate_fn)
     }
 
     num_classes = len(train_dataset.class_dict)
