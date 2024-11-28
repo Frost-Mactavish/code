@@ -44,6 +44,51 @@ STANDARD_COLORS = [
 ]
 
 
+def seed_everything(seed: int):
+    '''
+    set seed for pseudo-random number generators in pytorch, numpy, python
+    minimize randomness in cuda operation
+
+    Args:
+        seed (int): seed number
+    '''
+    import random, os
+    import numpy as np
+    import torch
+
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+def seed_worker(worker_id):
+    '''
+    set seed for PyTorch DataLoader
+    g = torch.Generator()
+    g.manual_seed(seed)
+    train_loader = torch.utils.data.DataLoader(
+        eval(dset_string)(root='./data', train=True, transform=transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomCrop(32, 4),
+            transforms.ToTensor(),
+            normalize,
+        ]),download=True),
+        batch_size=args.batch_size, shuffle=True,
+        num_workers=args.workers, pin_memory=True, worker_init_fn=seed_worker)
+    Args:
+        worker_id:
+
+    Returns:
+
+    '''
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
 def train_one_epoch(model,
                     optimizer,
                     dataloader,
@@ -175,18 +220,16 @@ def evaluate(model,
              dataloader,
              coco_gt,
              device,
-             phase: str,
              print_feq: Optional[int] = 100):
     '''
     define procedure of test process
 
     Args:
         coco_gt (Object): Ground organized conforming to coco api
-        phase (str): base, inc or joint
         print_feq (int, optional): interval for printing logs
 
     Returns:
-        coco_info (list): list of evalution stats
+        coco_info (list[float]): list of evalution stats
     '''
     cpu_device = torch.device("cpu")
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -195,8 +238,7 @@ def evaluate(model,
     iou_types = _get_iou_types(model)
     coco_evaluator = CocoEvaluator(coco_gt, iou_types)
 
-    from dataset import get_class_dict
-    class_dict = get_class_dict('DIOR', phase)
+    class_dict = dataloader.dataset.class_dict
     category_index = {v: k for k, v in class_dict.items()}
 
     for i, [image, targets] in enumerate(metric_logger.log_every(dataloader, print_feq, header)):
@@ -417,8 +459,7 @@ def inference(model, dataloader, threshold, device, srcdir):
     '''
     print('Start Inference')
 
-    with open('classes.json', 'r') as f:
-        class_dict = json.load(f)
+    class_dict = dataloader.dataset.class_dict
     category_index = {str(v):str(k) for k,v in class_dict.items()}
 
     model.eval()

@@ -65,6 +65,7 @@ def main(args, tune_list):
         freeze_module(model, tune_list)
 
     params = [p for p in model.parameters() if p.requires_grad]
+    # TODO：lr set to 2e-2, static first, then CosineAnnealing
     optimizer = torch.optim.SGD(params, lr=1e-2, momentum=0.9, weight_decay=1e-4)
     lr_scheduler = MultiStepLR(optimizer, milestones=[10], gamma=0.1)
 

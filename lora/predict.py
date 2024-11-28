@@ -23,7 +23,8 @@ def main(args):
 
     weight_path = os.path.join(save_dir, args.filename)
     assert os.path.exists(weight_path)
-    model, phase = load_weights(weight_path).to(device)
+    model, phase = load_weights(weight_path)
+    model.to(device)
 
     class_dict = get_class_dict(args.dataset, phase)
     category_index = {str(v): str(k) for k, v in class_dict.items()}

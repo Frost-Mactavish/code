@@ -44,7 +44,6 @@ def main(args):
                  dataloader=dataloader,
                  coco_gt=coco_gt,
                  device=device,
-                 phase=phase,
                  print_feq=print_feq)
 
     elif args.test_mode == 'visualize':
