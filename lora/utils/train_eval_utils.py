@@ -68,7 +68,7 @@ def train_one_epoch(model,
     header = 'Epoch: [{}]'.format(epoch)
 
     # average loss over batches in one epoch
-    loss = {'classifier': 0.0, 'box_reg': 0.0, 'objectness': 0.0, 'rpn_box_reg': 0.0}
+    loss = {'loss_cls': 0.0, 'loss_box': 0.0, 'loss_obj': 0.0, 'loss_rpn_box': 0.0}
     for i, [images, targets] in enumerate(metric_logger.log_every(dataloader, print_freq, header)):
         images = [image.to(device) for image in images]
         targets = [{k: v.to(device) for k, v in t.items() if not isinstance(v, str)} for t in targets]

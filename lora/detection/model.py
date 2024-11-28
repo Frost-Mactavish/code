@@ -49,7 +49,8 @@ def create_model(backbone: str, num_classes: int):
     #         rpn_head=rpn_head,
     #         box_head=box_head
     #     )
-
+    # TODO: load resnet50 weight to resnet101
+    # TODO: check if FPN mapping correctly
     backbone = resnet.__dict__[backbone](weights='DEFAULT', norm_layer=nn.BatchNorm2d)
     backbone = _resnet_fpn_extractor(backbone, trainable_layers=3, norm_layer=nn.BatchNorm2d)
 
