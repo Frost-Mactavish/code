@@ -1,13 +1,15 @@
-#! /bin/bash
+#!/bin/bash
 
 # setup SSH service
 apt update && apt install openssh-server -y && \
 apt clean && rm -rf /var/lib/apt/lists/*
 
-echo "PubkeyAuthentication yes
+# enable root login and password authen
+echo "PasswordAuthentication yes
 PermitRootLogin yes" >> /etc/ssh/sshd_config
 
-/etc/init.d/ssh start
+# refresh SSH config
+/etc/init.d/ssh restart
 
 # setup ROOT password
 echo "root:666666" | chpasswd
