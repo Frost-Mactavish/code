@@ -7,33 +7,9 @@ from torch.utils.data import DataLoader
 
 from detection import transform_
 from dataset import DIORIncDataset
-from detection.model import create_model
+from detection.model import load_weights
 from utils.train_eval_utils import evaluate, inference
 from detection.coco_utils import get_coco_api_from_dataset
-
-torch.multiprocessing.set_sharing_strategy('file_system')
-
-
-def load_weights(weight_path: str):
-    '''
-    Args:
-        weight_path (str): abs path of weight file
-    '''
-    assert os.path.exists(weight_path)
-    filename = os.path.basename(weight_path)
-    backbone_type = f"resnet{filename.split('_')[1]}"
-    phase = filename.split('_')[-2]
-    assert backbone_type in ['resnet50', 'resnet101']
-    assert phase in ['joint', 'base', 'inc']
-    
-    weight_dict = torch.load(weight_path, map_location='cpu', weights_only=True)
-    weight_dict = weight_dict['model'] if 'model' in weight_dict else weight_dict
-
-    num_classes = weight_dict['roi_heads.box_predictor.cls_score.bias'].size(0) - 1
-    model = create_model(backbone_type, num_classes)
-    model.load_state_dict(weight_dict)
-
-    return model, phase
 
 
 def main(args):

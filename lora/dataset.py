@@ -1,5 +1,4 @@
 import os
-import json
 import copy
 from glob import glob
 from typing import Optional
@@ -64,8 +63,8 @@ class DIORIncDataset(Dataset):
     '''
     Args:
         root (str): root directory of dataset -> path to fetch data
-        transform (object): organize data transform pipeline, likes of torchvision.transforms.Compose
-        dataset (str): name of dataset -> get_class_dict()
+        transform (object): data transform pipeline, likes of torchvision.transforms.Compose
+        dataset (str): dataset name -> get_class_dict()
         mode (str): train or test -> what data to fetch
         phase (str): incremental phase -> whether or not filter classes
     '''
@@ -85,7 +84,7 @@ class DIORIncDataset(Dataset):
                 xml = os.path.join(self.xml_dir, line.strip('\n') + '.xml')
                 self.xml_list.append(xml)
 
-                # if len(self.xml_list) == 100:       # 小规模数据加载，快速验证训练流程
+                # if len(self.xml_list) == 100:       # for rapid code validation
                 #     break
 
         self.class_dict = get_class_dict('DIOR', phase)
@@ -94,6 +93,9 @@ class DIORIncDataset(Dataset):
             self.filter_classes()
 
     def filter_classes(self):
+        '''
+        filter annotaion of classes not in the class_dict
+        '''
         xml_list = copy.deepcopy(self.xml_list)
         for xml_path in xml_list:
             with open(xml_path, 'r') as f:
@@ -106,7 +108,7 @@ class DIORIncDataset(Dataset):
                 if obj['name'] in self.class_dict.keys():
                     count += 1
             if count == 0:
-                self.xml_list.remove(xml_path)
+                self.xml_list.remove(xml_path)              # in-place operation
 
     def __getitem__(self, idx):
         xml_path = self.xml_list[idx]
@@ -160,6 +162,7 @@ class DIORIncDataset(Dataset):
     def parse_xml_to_dict(self, xml):
         """
         将xml文件解析成字典形式，参考tensorflow的recursive_parse_xml_to_dict
+
         Args:
             xml: xml tree obtained by parsing XML file contents using lxml.etree
 

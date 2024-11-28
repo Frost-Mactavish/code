@@ -34,7 +34,7 @@ def main(args, tune_list):
     log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}_{current_time}'
     tb_logger = SummaryWriter(log_dir=log_dir, flush_secs=60)
 
-    device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     data_transform = {
         'train': transform_.Compose([
@@ -65,7 +65,7 @@ def main(args, tune_list):
         freeze_module(model, tune_list)
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=1e-2, momentum=0.9, weight_decay=5e-4)
+    optimizer = torch.optim.SGD(params, lr=1e-2, momentum=0.9, weight_decay=1e-4)
     lr_scheduler = MultiStepLR(optimizer, milestones=[10], gamma=0.1)
 
     start_epoch = 1
@@ -126,7 +126,6 @@ def main(args, tune_list):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--device', default='0', help='cuda device id')
     parser.add_argument('--dataset', default='DIOR', help='dataset name')
     parser.add_argument('--backbone', default='resnet50', help='model backbone')
     parser.add_argument('--phase', default='joint', help='incremental phase')

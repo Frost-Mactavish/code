@@ -11,7 +11,7 @@
         "print_feq": 2000
     },
     "DOTA": {
-        "epoch": 20,
+        "epoch": 15,
         "warmup_epoch": 5,
         "train_batchSize": 8,
         "test_batchSize": 8,

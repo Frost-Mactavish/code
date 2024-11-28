@@ -1,34 +1,36 @@
 import os
 import json
+import random
 import matplotlib.pyplot as plt
 from PIL import Image, ImageColor, ImageDraw
 
 import torch
 from torchvision import transforms
 
-from dior_test import load_weights
+from dataset import get_class_dict
+from detection.model import load_weights
 from utils.train_eval_utils import STANDARD_COLORS
 
 
-with open('config.json') as f:
-    config = json.load(f)["DIOR"]
-
-
-def main():
+def main(args):
+    with open('config.json') as f:
+        config = json.load(f)[args.dataset]
 
     root = config['root']
     mean, std = config['mean'], config['std']
-    batch_size = config['test_batchSize']
-    model_savedir = config['savedir']
+    save_dir = config['save_dir']
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    model = load_weights(os.path.join(model_savedir, 'DIOR-15-47.010.pth')).to(device)
+    weight_path = os.path.join(save_dir, args.filename)
+    assert os.path.exists(weight_path)
+    model, phase = load_weights(weight_path).to(device)
 
-    with open(classes.json, 'r') as f:
-        class_dict = json.load(f)["DIOR"]
+    class_dict = get_class_dict(args.dataset, phase)
     category_index = {str(v): str(k) for k, v in class_dict.items()}
 
-    original_img = Image.open(root + "/test_fog/16925.jpg")
+    img_list = os.listdir(root)
+    img_path = random.sample(img_list, 1)[0]
+    original_img = Image.open(img_path)
 
     data_transform = transforms.Compose([
         transforms.ToTensor(),
@@ -37,9 +39,8 @@ def main():
     img = data_transform(original_img)
     img = torch.unsqueeze(img, dim=0)
 
-    model.eval()  # 进入验证模式
+    model.eval()
     with torch.no_grad():
-        # init
         img_height, img_width = img.shape[-2:]
         init_img = torch.zeros((1, 3, img_height, img_width), device=device)
         model(init_img)
@@ -51,7 +52,7 @@ def main():
         predict_scores = predictions["scores"].to("cpu").numpy()
 
         if len(predict_boxes) == 0:
-            print("没有检测到任何目标!")
+            print("No object detected.")
 
         colors = [ImageColor.getrgb(STANDARD_COLORS[cls % len(STANDARD_COLORS)]) for cls in predict_classes]
         draw = ImageDraw.Draw(original_img)
@@ -59,14 +60,19 @@ def main():
             if score < 0.5:
                 continue
             x0, y0, x1, y1 = box
-            # 绘制目标边界框
             draw.rectangle([x0, y0, x1, y1], width=6, outline=color)
 
         plt.imshow(original_img)
         plt.show()
-        # 保存预测的图片结果
-        original_img.save("dcp.jpg")
+        original_img.save("detection_result.png")
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--dataset', default='DIOR', help='dataset name')
+    parser.add_argument('--filename', default='DIOR_50_joint_72.68.pth',
+                        help='filename of weight')
+    args = parser.parse_args()
+    print(args)
+
+    main(args)

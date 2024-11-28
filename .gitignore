@@ -1,9 +1,9 @@
 # customized configs
-/dataset/*
-!/dataset/script
+/dataset/
 *.pth
 *.safetensors
 events.out.tfevents.*
+/lora/log/*
 
 
 # Byte-compiled / optimized / DLL files

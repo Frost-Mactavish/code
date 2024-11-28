@@ -7,52 +7,12 @@ from safetensors.torch import load_file
 import torch
 import torch.nn as nn
 from torchvision.models import resnet
+from torchvision.models.detection.rpn import RPNHead
+from torchvision.models.detection.roi_heads import RoIHeads
+from torchvision.models.detection.anchor_utils import AnchorGenerator
+from torchvision.models.detection.backbone_utils import _resnet_fpn_extractor
 from torchvision.models.detection.faster_rcnn import (FastRCNNPredictor, FastRCNNConvFCHead,
                                                       FasterRCNN, fasterrcnn_resnet50_fpn_v2)
-from torchvision.models.detection.backbone_utils import _resnet_fpn_extractor
-from torchvision.models.detection.anchor_utils import AnchorGenerator
-from torchvision.models.detection.roi_heads import RoIHeads
-from torchvision.models.detection.rpn import RegionProposalNetwork, RPNHead
-from torchvision.models.detection.transform import GeneralizedRCNNTransform
-
-
-def create_model(backbone: str, num_classes: int):
-    '''
-    create frcnn model with ResNet50 w/ FPN as backbone
-
-    Args:
-        num_classes (int): number of classes of dataset
-        backbone (str): resnet50 or resnet101
-    '''
-    assert backbone in ['resnet50', 'resnet101']
-
-    # if backbone == 'resnet50':
-    #     model = fasterrcnn_resnet50_fpn_v2(weights='DEFAULT')
-    # TODO: check if FPN mapping correctly
-    backbone = resnet.__dict__[backbone](weights='DEFAULT', norm_layer=nn.BatchNorm2d)
-    backbone = _resnet_fpn_extractor(backbone, trainable_layers=3, norm_layer=nn.BatchNorm2d)
-
-    anchor_sizes = ((32,), (64,), (128,), (256,), (512,))
-    aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
-    rpn_anchor_generator = AnchorGenerator(anchor_sizes, aspect_ratios)
-
-    rpn_head = RPNHead(backbone.out_channels, rpn_anchor_generator.num_anchors_per_location()[0], conv_depth=2)
-    box_head = FastRCNNConvFCHead(
-        (backbone.out_channels, 7, 7), [256, 256, 256, 256], [1024], norm_layer=nn.BatchNorm2d
-    )
-
-    model = FasterRCNN(
-        backbone,
-        num_classes=91,
-        rpn_anchor_generator=rpn_anchor_generator,
-        rpn_head=rpn_head,
-        box_head=box_head
-    )
-
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes + 1)
-
-    return model
 
 
 class LoRALayer(nn.Module):
@@ -101,6 +61,67 @@ class LoRAConv2d(nn.Module):
         pass
 
 
+def create_model(backbone: str, num_classes: int):
+    '''
+    create frcnn model with ResNet50 or 101 w/ FPN as backbone
+
+    Args:
+        num_classes (int): number of classes of dataset
+        backbone (str): resnet50 or resnet101
+    '''
+    assert backbone in ['resnet50', 'resnet101']
+
+    # if backbone == 'resnet50':
+    #     model = fasterrcnn_resnet50_fpn_v2(weights='DEFAULT')
+    # TODO: check if FPN mapping correctly
+    backbone = resnet.__dict__[backbone](weights='DEFAULT', norm_layer=nn.BatchNorm2d)
+    backbone = _resnet_fpn_extractor(backbone, trainable_layers=3, norm_layer=nn.BatchNorm2d)
+
+    anchor_sizes = ((32,), (64,), (128,), (256,), (512,))
+    aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
+    rpn_anchor_generator = AnchorGenerator(anchor_sizes, aspect_ratios)
+    rpn_head = RPNHead(backbone.out_channels, rpn_anchor_generator.num_anchors_per_location()[0], conv_depth=2)
+
+    box_head = FastRCNNConvFCHead(
+        (backbone.out_channels, 7, 7), [256, 256, 256, 256], [1024], norm_layer=nn.BatchNorm2d
+    )
+
+    model = FasterRCNN(
+        backbone,
+        num_classes=91,
+        rpn_anchor_generator=rpn_anchor_generator,
+        rpn_head=rpn_head,
+        box_head=box_head
+    )
+
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes + 1)
+
+    return model
+
+
+def load_weights(weight_path: str):
+    '''
+    Args:
+        weight_path (str): abs path of weight file
+    '''
+    assert os.path.exists(weight_path)
+    filename = os.path.basename(weight_path)
+    backbone_type = f"resnet{filename.split('_')[1]}"
+    phase = filename.split('_')[-2]
+    assert backbone_type in ['resnet50', 'resnet101']
+    assert phase in ['joint', 'base', 'inc']
+
+    weight_dict = torch.load(weight_path, map_location='cpu', weights_only=True)
+    weight_dict = weight_dict['model'] if 'model' in weight_dict else weight_dict
+
+    num_classes = weight_dict['roi_heads.box_predictor.cls_score.bias'].size(0) - 1
+    model = create_model(backbone_type, num_classes)
+    model.load_state_dict(weight_dict)
+
+    return model, phase
+
+
 def convert_to_lora(model: nn.Module):
     '''
     recursively search the model architecture and
@@ -118,12 +139,12 @@ def convert_to_lora(model: nn.Module):
             setattr(model, name, LoRAConv2d(child))
 
 
-def expand_classifier(ckpt_list: list[str]):
+def expand_classifier(ckpt_list: list[state_dict]):
     '''
     merge classification head of multiple detection models
 
     Args:
-        ckpt_list (list[str]): state_dict of detection ckpts, assembled in list
+        ckpt_list (list[state_dict]): state_dict of detection ckpts, assembled in list
 
     Returns:
         classifier weight and bias concatenated in dim=0, assembled in list
@@ -178,6 +199,6 @@ def extract_state_dict(root: str):
 
 
 if __name__ == '__main__':
-    root = 'checkpoints'
+    root = '../checkpoints'
     extract_state_dict(root)
     safetensors_to_pth(root)
