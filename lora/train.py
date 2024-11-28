@@ -3,10 +3,11 @@ import json
 import argparse
 from re import findall
 from timm import scheduler
+from datetime import datetime
 
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -15,9 +16,6 @@ from detection.model import create_model, freeze_module
 from dataset import DIORIncDataset
 from detection.coco_utils import get_coco_api_from_dataset
 from utils.train_eval_utils import train_one_epoch, evaluate
-
-torch.multiprocessing.set_sharing_strategy('file_system')
-# torch.multiprocessing.set_start_method('spawn')
 
 
 def main(args, tune_list):
@@ -33,7 +31,8 @@ def main(args, tune_list):
     save_dir = config['save_dir']
     print_feq = config['print_feq']
 
-    log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}'
+    current_time = datetime.now().strftime("%m%d-%H%M")
+    log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}_{current_time}'
     tb_logger = SummaryWriter(log_dir=log_dir, flush_secs=60)
 
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
@@ -55,9 +54,9 @@ def main(args, tune_list):
     test_dataset = DIORIncDataset(root=root, transform=data_transform['test'], mode='test', phase=args.phase)
     dataloader = {
         'train': DataLoader(dataset=train_dataset, batch_size=train_batchSize,
-                            num_workers=20, shuffle=True, collate_fn=train_dataset.collate_fn),
+                            num_workers=8, shuffle=True, collate_fn=train_dataset.collate_fn),
         'test': DataLoader(dataset=test_dataset, batch_size=test_batchSize,
-                           num_workers=20, collate_fn=test_dataset.collate_fn)
+                           num_workers=8, collate_fn=test_dataset.collate_fn)
     }
 
     num_classes = len(train_dataset.class_dict)
@@ -67,11 +66,12 @@ def main(args, tune_list):
         freeze_module(model, tune_list)
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=5e-3, momentum=0.9, weight_decay=5e-4)
+    optimizer = torch.optim.SGD(params, lr=0.01, momentum=0.9, weight_decay=5e-4)
     # TODO: StepScheduler, larger initilizing lr
-    lr_scheduler = CosineAnnealingLR(optimizer, T_max=total_epoch, eta_min=1e-6)
+    # lr_scheduler = CosineAnnealingLR(optimizer, T_max=total_epoch, eta_min=1e-6)
     # lr_scheduler = scheduler.CosineLRScheduler(optimizer, t_initial=total_epoch, lr_min=1e-6,
     #                                                 warmup_t=warmup_epoch, warmup_lr_init=1e-4)
+    lr_scheduler = MultiStepLR(optimizer, milestones=[10], gamma=0.1)
 
     start_epoch = 1
     if args.resume is not None:
@@ -93,7 +93,7 @@ def main(args, tune_list):
                                               device=device,
                                               epoch=epoch,
                                               print_freq=print_feq)
-        lr_scheduler.step(epoch)
+        lr_scheduler.step()
 
         # add tensorboard records
         tb_logger.add_scalar('loss', loss, epoch)
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--device', default='0', help='cuda device id')
     parser.add_argument('--dataset', default='DIOR', help='dataset name')
-    parser.add_argument('--backbone', default='resnet50', help='model backbone')
+    parser.add_argument('--backbone', default='resnet101', help='model backbone')
     parser.add_argument('--phase', default='joint', help='incremental phase')
     parser.add_argument('--partial', default=None, help='train part of the model')
     parser.add_argument('--resume', default=None, help='training state to resume training with')

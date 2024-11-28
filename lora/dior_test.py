@@ -62,7 +62,7 @@ def main(args):
 
     if args.test_mode == 'map':
         coco_gt = get_coco_api_from_dataset(test_dataset)
-        dataloader = DataLoader(test_dataset, batch_size=test_batchSize, num_workers=20,
+        dataloader = DataLoader(test_dataset, batch_size=test_batchSize, num_workers=8,
                                 shuffle=False, collate_fn=test_dataset.collate_fn)
         evaluate(model=model,
                  dataloader=dataloader,
@@ -73,7 +73,7 @@ def main(args):
 
     elif args.test_mode == 'visualize':
         srcdir = os.path.join(root, 'Images')
-        dataloader = DataLoader(test_dataset, batch_size=5, num_workers=20,
+        dataloader = DataLoader(test_dataset, batch_size=5, num_workers=8,
                                 shuffle=True, collate_fn=test_dataset.collate_fn)
         inference(model=model,
                   dataloader=dataloader,
