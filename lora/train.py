@@ -2,12 +2,11 @@ import os
 import json
 import argparse
 from re import findall
-from timm import scheduler
 from datetime import datetime
 
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
+from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -66,11 +65,7 @@ def main(args, tune_list):
         freeze_module(model, tune_list)
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.01, momentum=0.9, weight_decay=5e-4)
-    # TODO: StepScheduler, larger initilizing lr
-    # lr_scheduler = CosineAnnealingLR(optimizer, T_max=total_epoch, eta_min=1e-6)
-    # lr_scheduler = scheduler.CosineLRScheduler(optimizer, t_initial=total_epoch, lr_min=1e-6,
-    #                                                 warmup_t=warmup_epoch, warmup_lr_init=1e-4)
+    optimizer = torch.optim.SGD(params, lr=1e-2, momentum=0.9, weight_decay=5e-4)
     lr_scheduler = MultiStepLR(optimizer, milestones=[10], gamma=0.1)
 
     start_epoch = 1
@@ -133,7 +128,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--device', default='0', help='cuda device id')
     parser.add_argument('--dataset', default='DIOR', help='dataset name')
-    parser.add_argument('--backbone', default='resnet101', help='model backbone')
+    parser.add_argument('--backbone', default='resnet50', help='model backbone')
     parser.add_argument('--phase', default='joint', help='incremental phase')
     parser.add_argument('--partial', default=None, help='train part of the model')
     parser.add_argument('--resume', default=None, help='training state to resume training with')
