@@ -178,6 +178,6 @@ def extract_state_dict(root: str):
 
 
 if __name__ == '__main__':
-    root = 'checkpoints'
+    root = '../checkpoints'
     extract_state_dict(root)
     safetensors_to_pth(root)
