@@ -213,7 +213,7 @@ class CalcDataset(Dataset):
         return len(self.img_list)
 
     def calc(self, batch_size=512):
-        dataloader = DataLoader(self, batch_size, num_workers=8)
+        dataloader = DataLoader(self, batch_size, num_workers=8, pin_memory=True)
 
         sum, squared_sum, batch_num = 0, 0, 0
         for img in dataloader:
@@ -227,7 +227,7 @@ class CalcDataset(Dataset):
 
 
 if __name__ == '__main__':
-    root = '/home/freddy/code/dataset/DIOR/Images'
+    root = '/data/my_code/code/dataset/DIOR/Images'
     dataset = CalcDataset(root)
     mean, std = dataset.calc()
 

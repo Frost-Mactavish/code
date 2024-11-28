@@ -66,7 +66,7 @@ def create_model(backbone: str, num_classes: int):
     create frcnn model with ResNet50 or 101 w/ FPN as backbone
 
     Args:
-        num_classes (int): number of classes of dataset
+        num_classes (int): number of dataset classes, excluding background
         backbone (str): resnet50 or resnet101
     '''
     assert backbone in ['resnet50', 'resnet101']

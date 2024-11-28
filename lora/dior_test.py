@@ -25,21 +25,21 @@ def main(args):
     weight_path = os.path.join(save_dir, args.filename)
     assert os.path.exists(weight_path)
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
     model, phase = load_weights(weight_path)
     model.to(device)
+
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     data_transform = transform_.Compose([
         transform_.ToTensor(),
         transform_.Normalize(mean, std)
     ])
     test_dataset = DIORIncDataset(root, transform=data_transform, mode='test', phase=phase)
+    dataloader = DataLoader(test_dataset, batch_size=test_batchSize, num_workers=8,
+                            pin_memory=True, collate_fn=test_dataset.collate_fn)
 
     if args.test_mode == 'map':
         coco_gt = get_coco_api_from_dataset(test_dataset)
-        dataloader = DataLoader(test_dataset, batch_size=test_batchSize, num_workers=8,
-                                shuffle=False, collate_fn=test_dataset.collate_fn)
         evaluate(model=model,
                  dataloader=dataloader,
                  coco_gt=coco_gt,
@@ -48,8 +48,6 @@ def main(args):
 
     elif args.test_mode == 'visualize':
         srcdir = os.path.join(root, 'Images')
-        dataloader = DataLoader(test_dataset, batch_size=5, num_workers=8,
-                                shuffle=True, collate_fn=test_dataset.collate_fn)
         inference(model=model,
                   dataloader=dataloader,
                   threshold=0.5,
