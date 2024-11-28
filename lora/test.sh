@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
 source /home/freddy/Software/miniforge/etc/profile.d/conda.sh
 

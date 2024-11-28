@@ -66,7 +66,7 @@ def create_model(backbone: str, num_classes: int):
     create frcnn model with ResNet50 or 101 w/ FPN as backbone
 
     Args:
-        num_classes (int): number of classes of dataset
+        num_classes (int): number of dataset classes, excluding background
         backbone (str): resnet50 or resnet101
     '''
     assert backbone in ['resnet50', 'resnet101']
@@ -139,12 +139,12 @@ def convert_to_lora(model: nn.Module):
             setattr(model, name, LoRAConv2d(child))
 
 
-def expand_classifier(ckpt_list: list[state_dict]):
+def expand_classifier(ckpt_list: list[dict]):
     '''
     merge classification head of multiple detection models
 
     Args:
-        ckpt_list (list[state_dict]): state_dict of detection ckpts, assembled in list
+        ckpt_list (list[dict]): state_dict of detection ckpts, assembled in list
 
     Returns:
         classifier weight and bias concatenated in dim=0, assembled in list

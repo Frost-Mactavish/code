@@ -213,7 +213,7 @@ class CalcDataset(Dataset):
         return len(self.img_list)
 
     def calc(self, batch_size=512):
-        dataloader = DataLoader(self, batch_size, num_workers=8)
+        dataloader = DataLoader(self, batch_size, num_workers=8, pin_memory=True)
 
         sum, squared_sum, batch_num = 0, 0, 0
         for img in dataloader:
