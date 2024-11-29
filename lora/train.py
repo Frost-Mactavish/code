@@ -14,7 +14,7 @@ from detection import transform_
 from detection.model import create_model, freeze_module
 from dataset import DIORIncDataset
 from detection.coco_utils import get_coco_api_from_dataset
-from utils.train_eval_utils import train_one_epoch, evaluate
+from utils.train_eval_utils import train_one_epoch, evaluate, clear_checkpoints
 
 
 def main(args, tune_list):
@@ -122,6 +122,8 @@ def main(args, tune_list):
                 backbone = findall(r"\d+", args.backbone)[0]
                 filename = f"{args.dataset}_{backbone}_{args.phase}_{mAP50*100:.2f}.pth"
                 torch.save(save_file, os.path.join(save_dir, filename))
+
+    clear_checkpoints(save_dir, args.phase)
 
 
 if __name__ == '__main__':

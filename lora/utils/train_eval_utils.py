@@ -3,7 +3,8 @@ import sys
 import math
 import json
 import time
-from optparse import Option
+import random
+from glob import glob
 from typing import Optional
 
 import numpy as np
@@ -52,10 +53,6 @@ def seed_everything(seed: int):
     Args:
         seed (int): seed number
     '''
-    import random, os
-    import numpy as np
-    import torch
-
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)
@@ -64,29 +61,48 @@ def seed_everything(seed: int):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+
 def seed_worker(worker_id):
     '''
     set seed for PyTorch DataLoader
-    g = torch.Generator()
-    g.manual_seed(seed)
-    train_loader = torch.utils.data.DataLoader(
-        eval(dset_string)(root='./data', train=True, transform=transforms.Compose([
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomCrop(32, 4),
-            transforms.ToTensor(),
-            normalize,
-        ]),download=True),
-        batch_size=args.batch_size, shuffle=True,
-        num_workers=args.workers, pin_memory=True, worker_init_fn=seed_worker)
+
+    Examples:
+        g = torch.Generator()
+        g.manual_seed(seed)
+        train_loader = torch.utils.data.DataLoader(
+            eval(dset_string)(root='./data', train=True, transform=transforms.Compose([
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomCrop(32, 4),
+                transforms.ToTensor(),
+                normalize,
+            ]),download=True),
+            batch_size=args.batch_size, shuffle=True,
+            num_workers=args.workers, pin_memory=True, worker_init_fn=seed_worker)
+
     Args:
-        worker_id:
-
-    Returns:
-
+        worker_id (int):
     '''
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
+
+
+def clear_checkpoints(ckpt_path: str, phase: str):
+    '''
+    delete abundant checkpoints
+
+    Args:
+        ckpt_path (str): path to saved ckpt
+        phase (str): current training phase
+    '''
+    pth_list = [ckpt for ckpt in glob(f"{ckpt_path}/*.pth") if phase in ckpt]
+    if len(pth_list) == 1:
+        return
+    map_list = [float(filename.split('_')[-1].strip('.pth')) for filename in pth_list]
+    tuple_list = sorted(list(zip(pth_list, map_list)), key=lambda x:x[1], reverse=True)
+    pth_list.remove(tuple_list[0][0])
+    for file in pth_list:
+        os.remove(file)
 
 
 def train_one_epoch(model,
@@ -505,5 +521,3 @@ def inference(model, dataloader, threshold, device, srcdir):
             break
 
     print('Finish Inference')
-
-
