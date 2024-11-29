@@ -15,7 +15,6 @@ def get_coco_api_from_dataset(dataset):
 
 
 def convert_to_coco_api(ds):
-    current_time = time.time()
     dataloader = DataLoader(dataset=ds, batch_size=16, num_workers=8,
                             pin_memory=True, collate_fn=ds.collate_fn)
 
