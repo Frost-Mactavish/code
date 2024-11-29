@@ -26,10 +26,8 @@ def main(args):
 
     weight_path = os.path.join(save_dir, args.filename)
     assert os.path.exists(weight_path)
-
     model, phase = load_weights(weight_path)
     model.to(device)
-
 
     data_transform = transform_.Compose([
         transform_.ToTensor(),
