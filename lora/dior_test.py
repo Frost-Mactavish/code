@@ -22,11 +22,10 @@ def main(args):
     save_dir = config['save_dir']
     print_feq = config['print_feq']
 
-    weight_path = os.path.join(save_dir, args.filename)
-    assert os.path.exists(weight_path)
-
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
+    weight_path = os.path.join(save_dir, args.filename)
+    assert os.path.exists(weight_path)
     model, phase = load_weights(weight_path)
     model.to(device)
 
