@@ -58,33 +58,9 @@ def seed_everything(seed: int):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
-
-def seed_worker(worker_id):
-    '''
-    set seed for PyTorch DataLoader
-
-    Examples:
-        g = torch.Generator()
-        g.manual_seed(seed)
-        train_loader = torch.utils.data.DataLoader(
-            eval(dset_string)(root='./data', train=True, transform=transforms.Compose([
-                transforms.RandomHorizontalFlip(),
-                transforms.RandomCrop(32, 4),
-                transforms.ToTensor(),
-                normalize,
-            ]),download=True),
-            batch_size=args.batch_size, shuffle=True,
-            num_workers=args.workers, pin_memory=True, worker_init_fn=seed_worker)
-
-    Args:
-        worker_id (int):
-    '''
-    worker_seed = torch.initial_seed() % 2**32
-    np.random.seed(worker_seed)
-    random.seed(worker_seed)
 
 
 def clear_checkpoints(ckpt_path: str, phase: str):

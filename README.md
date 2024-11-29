@@ -38,7 +38,7 @@
 
 ## Base Training
 
-​		Base training follows the implementation settings in BOSS, yet unable to reproduce the base 15 classes training results, which is 73.3 ~ 75.6 mAP@0.5.
+Base training follows the implementation settings in BOSS, yet unable to reproduce the base 15 classes training results, which is 73.3 ~ 75.6 mAP@0.5.
 
 | Backbone  | Phase | Old 10 | New 10 | mAP@0.5 |
 | :-------: | :---: | :----: | :----: | :-----: |
@@ -53,7 +53,7 @@
 
 ## Incremental with Finetune
 
-​		Tune different combo of components, with weight initialized from model trained on Old 10 classes.
+Tune different combo of components, with weight initialized from model trained on Old 10 classes.
 
 <center><b>Tune with ResNet50 as backbone</b></center>
 

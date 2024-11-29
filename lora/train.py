@@ -30,12 +30,6 @@ def main(args, tune_list):
     save_dir = config['save_dir']
     print_feq = config['print_feq']
 
-    current_time = datetime.now().strftime("%m%d-%H%M")
-    log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}_{current_time}'
-    tb_logger = SummaryWriter(log_dir=log_dir, flush_secs=60)
-
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
     data_transform = {
         'train': transform_.Compose([
             transform_.ToTensor(),
@@ -58,11 +52,20 @@ def main(args, tune_list):
                            pin_memory=True, collate_fn=test_dataset.collate_fn)
     }
 
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     num_classes = len(train_dataset.class_dict)
     model = create_model(args.backbone, num_classes).to(device)
 
+    current_time = datetime.now().strftime("%m%d-%H%M")
+    log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}_{current_time}'
+
     if args.partial is not None:
-        freeze_module(model, tune_list)
+        if args.phase == 'inc':
+            model.load_state_dict(torch.load('checkpoints/DIOR_50_base_70.04.pth'))
+        freeze_module(model, tune_list[args.partial])
+        log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}_{args.partial}_{current_time}'
+
+    tb_logger = SummaryWriter(log_dir=log_dir, flush_secs=60)
 
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=1e-2, momentum=0.9, weight_decay=1e-4)
@@ -120,6 +123,8 @@ def main(args, tune_list):
                 }
                 backbone = findall(r"\d+", args.backbone)[0]
                 filename = f"{args.dataset}_{backbone}_{args.phase}_{mAP50*100:.2f}.pth"
+                if args.partial is not None:
+                    filename = f"{args.dataset}_{backbone}_{args.phase}_{args.partial}_{mAP50 * 100:.2f}.pth"
                 torch.save(save_file, os.path.join(save_dir, filename))
 
     clear_checkpoints(save_dir, args.phase)
@@ -129,13 +134,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dataset', default='DIOR', help='dataset name')
     parser.add_argument('--backbone', default='resnet50', help='model backbone')
-    parser.add_argument('--phase', default='joint', help='incremental phase')
+    parser.add_argument('--phase', default='inc', help='incremental phase')
     parser.add_argument('--partial', default=None, help='train part of the model')
     parser.add_argument('--resume', default=None, help='training state to resume training with')
     args = parser.parse_args()
     print(args)
 
-    tune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4.2' ]
+    tune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4.2', 'backbone.body.layer4']
 
     main(args, tune_list)
 
