@@ -298,7 +298,8 @@ def evaluate(model,
     voc_map_info_list = []
     for i in range(len(category_index)):
         stats, _ = summarize(coco_eval, catId=i)
-        voc_map_info_list.append(" {}: {:.2f}".format(category_index[i + 1], stats[1]*100))
+        mAP50 = stats[1] * 100
+        voc_map_info_list.append(" {}: {:.2f}".format(category_index[i + 1], mAP50))
 
     print_voc = "\n".join(voc_map_info_list)
     print(print_voc)
