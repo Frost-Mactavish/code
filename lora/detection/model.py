@@ -1,6 +1,7 @@
 import os
 import copy
 import math
+import warnings
 from glob import glob
 from safetensors.torch import load_file
 
@@ -124,11 +125,8 @@ def load_weights(weight_path: str):
 
 def convert_to_lora(model: nn.Module):
     '''
-    recursively search the model architecture and
-    replace all nn.Linear and nn.Conv2d layer with corresponding LoRALayer
-
-    Args:
-        model (nn.Module): model to be converted
+    recursively traverse the model architecture 
+    and replace all nn.Linear and nn.Conv2d layer with LoRALayer
     '''
     for name, child in model.named_children():
         if len(list(child.children())) > 0:
@@ -139,23 +137,41 @@ def convert_to_lora(model: nn.Module):
             setattr(model, name, LoRAConv2d(child))
 
 
-def expand_classifier(ckpt_list: list[dict]):
+def expand_classifier(source: nn.Module, target: nn.Module):
     '''
-    merge classification head of multiple detection models
-
-    Args:
-        ckpt_list (list[dict]): state_dict of detection ckpts, assembled in list
+    classifier branch expansion
 
     Returns:
-        classifier weight and bias concatenated in dim=0, assembled in list
+        target model with expanded classifier
     '''
-    cls_weight_list = [ckpt.state_dict()['roi_heads.box_predictor.cls_score.weight'] for ckpt in ckpt_list]
-    cls_bias_list = [ckpt.state_dict()['roi_heads.box_predictor.cls_score.bias'] for ckpt in ckpt_list]
-    return torch.cat(cls_weight_list, dim=0), torch.cat(cls_bias_list, dim=0)
+    if not isinstance(source, target):
+        warnings.warn(f"source is {type(source)} while target is {type(target)}!")
+    assert 'roi_heads.box_predictor.cls_score' in source.state_dict().keys()
+    assert 'roi_heads.box_predictor.cls_score' in target.state_dict().keys()
+
+    cls_weight_list = [model.state_dict()['roi_heads.box_predictor.cls_score.weight'][1:] for model in [source, target]]
+    cls_bias_list = [model.state_dict()['roi_heads.box_predictor.cls_score.bias'][1:] for model in [source, target]]
+    box_weight_list = [model.state_dict()['roi_heads.box_predictor.bbox_pred.weight'][4:] for model in [source, target]]
+    box_bias_list = [model.state_dict()['roi_heads.box_predictor.bbox_pred.bias'][4:] for model in [source, target]]
+
+    cls_weight, cls_bias = torch.cat(cls_weight_list, dim=0), torch.cat(cls_bias_list, dim=0)
+    box_weight, box_bias = torch.cat(box_weight_list, dim=0), torch.cat(box_bias_list, dim=0)
+
+    in_features = target.roi_heads.box_predictor.cls_score.in_features
+    num_classes = box_bias.size(0) + cls_bias.size(0)
+    target.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes + 1)
+
+    target.state_dict()['roi_heads.box_predictor.cls_score.weight'] = cls_weight
+    target.state_dict()['roi_heads.box_predictor.cls_score.bias'] = cls_bias
+    target.state_dict()['roi_heads.box_predictor.bbox_pred.weight'] = box_weight
+    target.state_dict()['roi_heads.box_predictor.bbox_pred.bias'] = box_bias
+
+    return target
 
 
 def freeze_module(model: nn.Module, tune_list: list[str]):
     '''
+    freeze modules params except for those in tune_list
     Args:
         tune_list: (list[str]): list of unfreezed modules
         model (nn.Module): model to be freezed
@@ -171,28 +187,34 @@ def freeze_module(model: nn.Module, tune_list: list[str]):
 
 def safetensors_to_pth(root: str):
     '''
-    convert safetensors format to pth format
-    it will deal with all safetensors files in the specified target_dir
+    convert .safetensors file to .pth
+    recursively deal with all .safetensors files under root diretory
 
     Args:
         root (str):  directory where the safetensors files locate
     '''
     assert os.path.isdir(root)
-    for filename in glob(f"{root}/*.safetensors"):
+    sft_list = []
+    for path, _, file_list in os.walk(root):
+        sft_list += [os.path.join(path, file_name) for file_name in file_lst if '.safetensors' in file_name]
+    for filename in sft_list:
         ckpt = load_file(filename)
         torch.save(ckpt, filename.replace(".safetensors", ".pth"))
 
 
 def extract_state_dict(root: str):
     '''
-    extract model state_dict from .pth files saved during training
-    dealing with all .pth file under root diretory
+    extract model state_dict from .pth file
+    recursively deal with all .pth files under root diretory
 
     Args:
         root (str):  diretory under which .pth files are saved
     '''
     assert os.path.isdir(root)
-    for filename in glob(f"{root}/*.pth"):
+    pth_list = []
+    for path, _, file_lst in os.walk(root):
+        pth_list += [os.path.join(path, file_name) for file_name in file_lst if '.pth' in file_name]
+    for filename in pth_list:
         ckpt = torch.load(filename, map_location='cpu', weights_only=True)
         if 'model' in ckpt:
             torch.save(ckpt['model'], filename)

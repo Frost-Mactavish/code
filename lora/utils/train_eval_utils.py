@@ -44,7 +44,7 @@ STANDARD_COLORS = [
     'WhiteSmoke', 'Yellow', 'YellowGreen'
 ]
 
-
+# TODO: forge modules of utils and model as Trainer Factory
 def seed_everything(seed: int):
     '''
     set seed for pseudo-random number generators in pytorch, numpy, python

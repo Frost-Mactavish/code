@@ -50,6 +50,7 @@ def main(args):
 
         predict_boxes = predictions["boxes"].to("cpu").numpy()
         predict_classes = predictions["labels"].to("cpu").numpy()
+        predict_classes = category_index[predict_classes]
         predict_scores = predictions["scores"].to("cpu").numpy()
 
         if len(predict_boxes) == 0:
