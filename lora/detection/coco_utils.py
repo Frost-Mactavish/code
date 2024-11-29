@@ -1,6 +1,6 @@
 import torch
 from torchvision.datasets import CocoDetection
-from torch.utils.data import Subset, DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from pycocotools.coco import COCO
 

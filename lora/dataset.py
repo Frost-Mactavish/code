@@ -227,7 +227,7 @@ class CalcDataset(Dataset):
 
 
 if __name__ == '__main__':
-    root = '/data/my_code/code/dataset/DIOR/Images'
+    root = '/home/freddy/code/dataset/DIOR/Images'
     dataset = CalcDataset(root)
     mean, std = dataset.calc()
 

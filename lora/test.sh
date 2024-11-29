@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source /data/anaconda/etc/profile.d/conda.sh
+source /home/freddy/Software/miniforge/etc/profile.d/conda.sh
 
 conda activate mytorch
 
