@@ -52,7 +52,7 @@ def main(args, tune_list):
                            pin_memory=True, collate_fn=test_dataset.collate_fn)
     }
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
     num_classes = len(train_dataset.class_dict)
     model = create_model(args.backbone, num_classes).to(device)
 
@@ -132,6 +132,7 @@ def main(args, tune_list):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--device', default='0', help='cuda device id')
     parser.add_argument('--dataset', default='DIOR', help='dataset name')
     parser.add_argument('--backbone', default='resnet50', help='model backbone')
     parser.add_argument('--phase', default='inc', help='incremental phase')
@@ -140,7 +141,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
 
-    tune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4.2', 'backbone.body.layer4']
+    tune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4.2' ]
 
     main(args, tune_list)
 
