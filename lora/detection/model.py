@@ -70,6 +70,7 @@ def create_model(backbone: str, num_classes: int):
         num_classes (int): number of dataset classes, excluding background
         backbone (str): resnet50 or resnet101
     '''
+    # TODO：all in one
     assert backbone in ['resnet50', 'resnet101']
 
     # if backbone == 'resnet50':

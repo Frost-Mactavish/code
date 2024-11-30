@@ -65,7 +65,7 @@ def seed_everything(seed: int):
 
 def clear_checkpoints(ckpt_path: str, phase: str):
     '''
-    delete abundant checkpoints
+    delete abundant checkpoints saved during training
 
     Args:
         ckpt_path (str): path to saved ckpt
