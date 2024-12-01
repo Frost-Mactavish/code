@@ -52,17 +52,18 @@ def main(args, tune_list):
                            pin_memory=True, collate_fn=test_dataset.collate_fn)
     }
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
     num_classes = len(train_dataset.class_dict)
     model = create_model(args.backbone, num_classes).to(device)
 
     current_time = datetime.now().strftime("%m%d-%H%M")
     log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}_{current_time}'
 
+    if args.phase == 'inc' and args.resume is not None:
+        model.load_state_dict(torch.load(os.path.join(save_dir, args.resume),
+                                         map_location='cpu', weights_only=True))
     if args.partial is not None:
-        if args.phase == 'inc':
-            model.load_state_dict(torch.load('checkpoints/DIOR_50_base_70.04.pth'))
-        freeze_module(model, tune_list[args.partial])
+        freeze_module(model, tune_list[:int(args.partial)])
         log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}_{args.partial}_{current_time}'
 
     tb_logger = SummaryWriter(log_dir=log_dir, flush_secs=60)
@@ -72,14 +73,14 @@ def main(args, tune_list):
     lr_scheduler = MultiStepLR(optimizer, milestones=[10], gamma=0.1)
 
     start_epoch = 1
-    if args.resume is not None:
-        resume = os.path.join(save_dir, args.resume)
-        assert os.path.isfile(resume)
-        checkpoint = torch.load(resume, map_location='cpu', weights_only=True)
-        model.load_state_dict(checkpoint['model'])
-        start_epoch = checkpoint['epoch']
-        optimizer.load_state_dict(checkpoint['optimizer'])
-        lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+    # if args.resume is not None:
+    #     resume = os.path.join(save_dir, args.resume)
+    #     assert os.path.isfile(resume)
+    #     checkpoint = torch.load(resume, map_location='cpu', weights_only=True)
+    #     model.load_state_dict(checkpoint['model'])
+    #     start_epoch = checkpoint['epoch']
+    #     optimizer.load_state_dict(checkpoint['optimizer'])
+    #     lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
 
     test_map = []
     # initialize coco_gt for test
@@ -127,11 +128,13 @@ def main(args, tune_list):
                     filename = f"{args.dataset}_{backbone}_{args.phase}_{args.partial}_{mAP50 * 100:.2f}.pth"
                 torch.save(save_file, os.path.join(save_dir, filename))
 
-    clear_checkpoints(save_dir, args.phase)
+    # TODO: mkdir to save ckpt for every training separately, so that ckpt can be named with mAP50
+    # clear_checkpoints(save_dir, args.phase)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--device', default='0', help='cuda device id')
     parser.add_argument('--dataset', default='DIOR', help='dataset name')
     parser.add_argument('--backbone', default='resnet50', help='model backbone')
     parser.add_argument('--phase', default='inc', help='incremental phase')
@@ -140,7 +143,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
 
-    tune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4.2', 'backbone.body.layer4']
+    tune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4.2' ]
 
     main(args, tune_list)
 
