@@ -1,8 +1,8 @@
 #!/bin/bash
 
-source /data/anaconda/etc/profile.d/conda.sh
+source /home/freddy/Software/miniforge/etc/profile.d/conda.sh
 
-conda activate torch
+conda activate mytorch
 
 filename="test_$(date '+%m%d-%H%M').txt"
 

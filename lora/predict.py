@@ -19,7 +19,7 @@ def main(args):
     root = config['root']
     mean, std = config['mean'], config['std']
     save_dir = config['save_dir']
-    device = torch.device(f"cuda:{args.device}" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     weight_path = os.path.join(save_dir, args.filename)
     assert os.path.exists(weight_path)
@@ -71,7 +71,6 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--device', default='0', help='cuda device id')
     parser.add_argument('--dataset', default='DIOR', help='dataset name')
     parser.add_argument('--filename', default='DIOR_50_joint_72.68.pth',
                         help='filename of weight')
