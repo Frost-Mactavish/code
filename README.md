@@ -1,16 +1,7 @@
-1.   DARE+TIES merge
+1.   Knowledge Distillation → Soft Label
 
-     -   冻结backbone，融合Neck、RPN、RoI Head的参数
-     -   扩展分类头的branch，是否选择原型进行微调
-     
-2.   zty GFSL, cls branch expansion
-
-4.   蒸馏 → 软标签
-
-     >软标签的一个侧面，类似于数据增强中的mixup方法
+     >Soft Label is kinda like mix-up and mosaic in data augmentation
      >
-     >在目标检测中，同样存在mixup和mosaic方法
-
 
 [知乎：知识蒸馏insight](https://www.zhihu.com/question/309808462/answer/2649118476)
 
@@ -40,31 +31,33 @@
 
 Base training follows the implementation settings in BOSS, yet unable to reproduce the base 15 classes training results, which is 73.3 ~ 75.6 mAP@0.5.
 
-| Backbone  | Phase | Old 10 | New 10 | mAP@0.5 |
-| :-------: | :---: | :----: | :----: | :-----: |
-| ResNet50  | joint | 69.97  | 72.17  |  71.07  |
-|           | base  |   /    |   /    |  69.52  |
-|           |  inc  |   /    |   /    |  72.89  |
-| ResNet101 | joint | 71.54  | 74.31  |  72.93  |
-|           | base  |   /    |   /    |  70.55  |
-|           |  inc  |   /    |   /    |  73.49  |
+This could be partially attributed to random seeding and sampler.
+
+| Backbone  | Phase | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] |
+| :-------: | :---: | :----: | :----: | :-----: | :------------: |
+| ResNet50  | joint |  70.0  |  72.2  |  71.1   |      44.3      |
+|           | base  |   /    |   /    |  69.5   |      44.5      |
+|           |  inc  |   /    |   /    |  72.9   |      42.7      |
+| ResNet101 | joint |  71.5  |  74.3  |  72.9   |      45.5      |
+|           | base  |   /    |   /    |  70.6   |      45.6      |
+|           |  inc  |   /    |   /    |  73.5   |      42.8      |
 
 
 
-## Incremental with Finetune
+## IOD with Fine-Tuning
 
 Tune different combo of components, with weight initialized from model trained on Old 10 classes.
 
 <center><b>Tune with ResNet50 as backbone</b></center>
 
-|    Component     | mAP@[0.5:0.95] | mAP@0.5 | Params | Comment |
-| :--------------: | :------------: | :-----: | :----: | :-----: |
-|       Head       |                |         | 15.26M |         |
-|     Head+RPN     |                |         | 16.45M |         |
-|   Head+RPN+FPN   |                |         | 19.79M |         |
-| * w/ backbone4.2 |                |         | 24.26M |         |
-|  * w/ backbone4  |                |         | 34.76M |         |
-|       full       |                |         | 43.08M |         |
+|    Component     | mAP@0.5 | mAP@[0.5:0.95] | Params |
+| :--------------: | :-----: | :------------: | :----: |
+|       Head       |  31.9   |      16.5      | 15.26M |
+|     Head+RPN     |  58.2   |      30.4      | 16.45M |
+|   Head+RPN+FPN   |  69.2   |      39.6      | 19.79M |
+| * w/ backbone4.2 |  71.2   |      41.5      | 24.26M |
+|  * w/ backbone4  |         |                | 34.76M |
+|       full       |  75.7   |                | 43.08M |
 
 >`*` denotes the combination of `Head+RPN+FPN`
 >
@@ -74,33 +67,59 @@ Tune different combo of components, with weight initialized from model trained o
 
 <center><b>Tune with ResNet101 as backbone</b></center>
 
-|    Component     | mAP@[0.5:0.95] | mAP@0.5 | Params | Comment |
-| :--------------: | :------------: | :-----: | :----: | :-----: |
-|       Head       |                |         | 15.26M |         |
-|     Head+RPN     |                |         | 16.45M |         |
-|   Head+RPN+FPN   |                |         | 19.79M |         |
-| * w/ backbone4.2 |                |         | 24.25M |         |
-|  * w/ backbone4  |                |         | 34.76M |         |
-|       full       |                |         | 62.07M |         |
+|    Component     | mAP@0.5 | mAP@[0.5:0.95] | Params |
+| :--------------: | :-----: | :------------: | :----: |
+|       Head       |  34.6   |      16.8      | 15.26M |
+|     Head+RPN     |  60.8   |      31.3      | 16.45M |
+|   Head+RPN+FPN   |  71.8   |      40.8      | 19.79M |
+| * w/ backbone4.2 |  72.1   |      41.5      | 24.25M |
+|  * w/ backbone4  |         |                | 34.76M |
+|       full       |  76.5   |      48.2      | 62.07M |
+
+Now we can draw conclusion that **it achieves an optimal balance between performance and parameter-efficiency when RoI Head, RPN and FPN are tuned during new task learning**.
 
 
 
-## Incremental with Model Merge
+## IOD with Model Merge
 
-|      | mAP@[0.5:0.95] | mAP@0.5 | Comment |
-| :--: | :------------: | :-----: | :-----: |
-|      |                |         |         |
-|      |                |         |         |
-|      |                |         |         |
+|  Merge Method  | mAP@0.5 | mAP@[0.5:0.95] | Comment |
+| :------------: | :-----: | :------------: | :-----: |
+| Simple Average |         |                |         |
+| Fisher Average |         |                |         |
+|   Dare-Ties    |         |                |         |
 
 
 
-## Incremental with LoRA
+## IOD with Low Rank Adaptation
 
-| Backbone  | Old 10 | New 10 | All  |     Params      | Comment |
-| :-------: | :----: | :----: | :--: | :-------------: | :-----: |
-| ResNet50  |        |        |      | 24.26M + (LoRA) |         |
-| ResNet101 |        |        |      | 24.25M + (LoRA) |         |
+`Low Rank Adaptation(LoRA)` is a Parameter Efficient Fine-Tuning(PEFT) technique based on matrix decomposition. LoRA approximates large weight matrix with low-rank matrices, achieving performance comparable to full-tuning with significantly fewer trainable parameters.
+
+`Original LoRA`  decomposes arbitrary weight matrix into two low-rank matrices, name it linear, embedding or convolution layer, and later combines them with simple matrix element-wise addition.
+
+A variant of LoRA, namely `Low-Rank Hadamard Product (LoHa)`, is similar to LoRA except it approximates the large weight matrix with more low-rank matrices and combines them with the Hadamard product. This method is even more parameter-efficient than LoRA and achieves comparable performance.
+
+Besides, researchers have implemented LoRA modules particularly for convolution layers, named `ConvLoRA`.
+
+<center><b>Original LoRA</b></center>
+
+| Backbone  | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] |     Params      |
+| :-------: | :----: | :----: | :-----: | :------------: | :-------------: |
+| ResNet50  |        |        |         |                | 24.26M + (LoRA) |
+| ResNet101 |        |        |         |                | 24.25M + (LoRA) |
+
+<center><b>Low-Rank Hadamard Product (LoHa)</b></center>
+
+| Backbone  | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] |     Params      |
+| :-------: | :----: | :----: | :-----: | :------------: | :-------------: |
+| ResNet50  |        |        |         |                | 24.26M + (LoRA) |
+| ResNet101 |        |        |         |                | 24.25M + (LoRA) |
+
+<center><b>ConvLoRA</b></center>
+
+| Backbone  | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] |     Params      |
+| :-------: | :----: | :----: | :-----: | :------------: | :-------------: |
+| ResNet50  |        |        |         |                | 24.26M + (LoRA) |
+| ResNet101 |        |        |         |                | 24.25M + (LoRA) |
 
 
 
@@ -116,6 +135,8 @@ Tune different combo of components, with weight initialized from model trained o
 
      >Training was nice and easy with pretained weights offered by PyTorch
 
+3.   Gotta revisit papers read before.
+
 
 
 
@@ -125,11 +146,11 @@ Tune different combo of components, with weight initialized from model trained o
 
 
 
-#### Few-Shot Incremental Object Detection in Aerial Imagery via Dual-Frequency Prompt （TGRS24）
+#### Few-Shot Incremental Object Detection in Aerial Imagery via Dual-Frequency Prompt (TGRS24)
 
 
 
-#### Balanced Orthogonal Subspace Separation Detector for Few-Shot Object Detection in Aerial Imagery （TGRS24）
+#### Balanced Orthogonal Subspace Separation Detector for Few-Shot Object Detection in Aerial Imagery (TGRS24)
 
 
 
@@ -137,7 +158,7 @@ Tune different combo of components, with weight initialized from model trained o
 
 
 
-#### Incremental Detection of Remote Sensing Objects With Feature Pyramid and Knowledge Distillation （TGRS20）
+#### Incremental Detection of Remote Sensing Objects With Feature Pyramid and Knowledge Distillation (TGRS20)
 
 
 
