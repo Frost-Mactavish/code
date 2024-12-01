@@ -40,3 +40,8 @@ filename="${dataset}_${backbone}_inc_4.txt"
 
 python -u train.py --device ${device} --dataset ${dataset} --backbone ${backbone} --phase 'inc' \
 --partial 4 --resume ${weight} 2>&1 | tee ${log_dir}/${filename}
+
+filename="${dataset}_${backbone}_inc_5.txt"
+
+python -u train.py --device ${device} --dataset ${dataset} --backbone ${backbone} --phase 'inc' \
+--partial 5 --resume ${weight} 2>&1 | tee ${log_dir}/${filename}

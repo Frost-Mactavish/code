@@ -1,7 +1,6 @@
 import os
 import json
 import argparse
-from re import findall
 from datetime import datetime
 
 import torch
@@ -122,7 +121,7 @@ def main(args, tune_list):
                     'lr_scheduler': lr_scheduler.state_dict(),
                     'epoch': epoch,
                 }
-                backbone = findall(r"\d+", args.backbone)[0]
+                backbone = '50' if '50' in args.backbone else '101'
                 filename = f"{args.dataset}_{backbone}_{args.phase}_{mAP50*100:.2f}.pth"
                 if args.partial is not None:
                     filename = f"{args.dataset}_{backbone}_{args.phase}_{args.partial}_{mAP50 * 100:.2f}.pth"
@@ -143,7 +142,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
 
-    tune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4.2' ]
+    tune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4.2', 'backbone.body.layer4']
 
     main(args, tune_list)
 

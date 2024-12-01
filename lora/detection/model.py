@@ -110,7 +110,8 @@ def load_weights(weight_path: str):
     assert os.path.exists(weight_path)
     filename = os.path.basename(weight_path)
     backbone_type = f"resnet{filename.split('_')[1]}"
-    phase = filename.split('_')[-2]
+    # TODO: phase -2, -3
+    phase = filename.split('_')[-3]
     assert backbone_type in ['resnet50', 'resnet101']
     assert phase in ['joint', 'base', 'inc']
 
@@ -197,7 +198,7 @@ def safetensors_to_pth(root: str):
     assert os.path.isdir(root)
     sft_list = []
     for path, _, file_list in os.walk(root):
-        sft_list += [os.path.join(path, file_name) for file_name in file_lst if '.safetensors' in file_name]
+        sft_list += [os.path.join(path, file_name) for file_name in file_list if '.safetensors' in file_name]
     for filename in sft_list:
         ckpt = load_file(filename)
         torch.save(ckpt, filename.replace(".safetensors", ".pth"))
