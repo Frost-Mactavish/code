@@ -101,12 +101,20 @@ A variant of LoRA, namely `Low-Rank Hadamard Product (LoHa)`, is similar to LoRA
 
 Besides, researchers have implemented LoRA modules particularly for convolution layers, named `ConvLoRA`.
 
+
+
+For `Original LoRA`, we make modification based on the implementation by [Microsoft](https://github.com/microsoft/LoRA/blob/main/loralib/layers.py), and only add it as a side branch to a pretrained model. Experiment settings remain the same as in the base training phase.
+
+For `LoHa`, we follow the implementation given by [LyCORIS](https://github.com/KohakuBlueleaf/LyCORIS/blob/eb460098187f752a5d66406d3affade6f0a07ece/lycoris/modules/loha.py), which features reimplemented PyTorch AutoGrad for **CP and Tucker decomposition** for tensors. The very same AutoGrad implementation is quoted by [Huggingface Peft](https://github.com/huggingface/peft/blob/3f9ce553e21569e21269b5ba91d7390f7229199a/src/peft/tuners/loha/layer.py#L293).
+
+For `ConvLoRA`, we follow the implementation given by [ConvLoRA](https://github.com/aleemsidra/ConvLoRA/blob/17da2f3391afafa8e57be0d09f21d72736208d6b/LoRA/loralib/layers.py#L246).
+
 <center><b>Original LoRA</b></center>
 
-| Backbone  | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] |     Params      |
-| :-------: | :----: | :----: | :-----: | :------------: | :-------------: |
-| ResNet50  |        |        |         |                | 24.26M + (LoRA) |
-| ResNet101 |        |        |         |                | 24.25M + (LoRA) |
+| Backbone  | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] |        Params        |
+| :-------: | :----: | :----: | :-----: | :------------: | :------------------: |
+| ResNet50  |        |        |         |                | 24.26M + 3.46M(LoRA) |
+| ResNet101 |        |        |         |                | 24.25M + 3.46M(LoRA) |
 
 <center><b>Low-Rank Hadamard Product (LoHa)</b></center>
 
@@ -177,4 +185,3 @@ Besides, researchers have implemented LoRA modules particularly for convolution 
 
 [LyCORIS](https://github.com/KohakuBlueleaf/LyCORIS?tab=readme-ov-file)
 
-[LoRA implemented by Microsoft](https://github.com/microsoft/LoRA?tab=readme-ov-file)
