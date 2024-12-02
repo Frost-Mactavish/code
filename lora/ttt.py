@@ -2,14 +2,24 @@ import os
 
 import torch
 import torch.nn as nn
-import torch.profiler
+from torch.nn.functional import dropout
 from torchinfo import summary
 
-from detection.model import create_model, freeze_module
+from detection.model import (create_model, freeze_module,
+                             LoRALinear, LoRAConv2d)
 
-num_classes = 10
-backbone = 'resnet50'
-model = create_model(backbone, num_classes)
+linear = nn.Linear(10,10)
+conv = nn.Conv2d(3, 16, 3)
+lora_linear = LoRALinear(linear, rank=8, dropout=0.5)
+lora_conv = LoRAConv2d(conv, rank=8, dropout=0.3)
+
+a = 1
+
+
+
+# num_classes = 10
+# backbone = 'resnet50'
+# model = create_model(backbone, num_classes)
 
 # weight = torch.load('checkpoints/tmp/DIOR-full-12-51.173.pth', map_location='cpu', weights_only=True)
 # num_class = weight['roi_heads.box_predictor.cls_score.bias'].size(0) - 1

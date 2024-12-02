@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from detection import transform_
-from detection.model import create_model, freeze_module
+from detection.model import create_model, freeze_module, convert_to_lora
 from dataset import DIORIncDataset
 from detection.coco_utils import get_coco_api_from_dataset
 from utils.train_eval_utils import train_one_epoch, evaluate, clear_checkpoints
@@ -53,19 +53,27 @@ def main(args, tune_list):
 
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
     num_classes = len(train_dataset.class_dict)
-    model = create_model(args.backbone, num_classes).to(device)
+    model = create_model(args.backbone, num_classes)
 
-    current_time = datetime.now().strftime("%m%d-%H%M")
-    log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}_{current_time}'
+
 
     if args.phase == 'inc' and args.resume is not None:
         model.load_state_dict(torch.load(os.path.join(save_dir, args.resume),
                                          map_location='cpu', weights_only=True))
-    if args.partial is not None:
-        freeze_module(model, tune_list[:int(args.partial)])
-        log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}_{args.partial}_{current_time}'
 
-    tb_logger = SummaryWriter(log_dir=log_dir, flush_secs=60)
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes + 1)
+
+    freeze_module(model, tune_list)
+    convert_to_lora(model.backbone.fpn)
+    convert_to_lora(model.rpn)
+    convert_to_lora(model.roi_heads.box_head)
+
+    # from torchinfo import summary
+    # summary(model, (8,3,800,800))
+
+    model.to(device)
 
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=1e-2, momentum=0.9, weight_decay=1e-4)
@@ -84,6 +92,11 @@ def main(args, tune_list):
     test_map = []
     # initialize coco_gt for test
     coco_gt = get_coco_api_from_dataset(test_dataset)
+
+    current_time = datetime.now().strftime("%m%d-%H%M")
+    log_dir = f'tb_logger/{args.dataset}_{args.backbone}_{args.phase}_lora_{current_time}'
+    tb_logger = SummaryWriter(log_dir=log_dir, flush_secs=60)
+
     for epoch in range(start_epoch, total_epoch + 1):
         loss, loss_dict, lr = train_one_epoch(model=model,
                                               optimizer=optimizer,
@@ -135,14 +148,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--device', default='0', help='cuda device id')
     parser.add_argument('--dataset', default='DIOR', help='dataset name')
-    parser.add_argument('--backbone', default='resnet50', help='model backbone')
+    parser.add_argument('--backbone', default='resnet101', help='model backbone')
     parser.add_argument('--phase', default='inc', help='incremental phase')
     parser.add_argument('--partial', default=None, help='train part of the model')
-    parser.add_argument('--resume', default=None, help='training state to resume training with')
+    parser.add_argument('--resume', default='base/DIOR_101_base_70.55.pth', help='training state to resume training with')
     args = parser.parse_args()
     print(args)
 
-    tune_list = ['roi_heads', 'rpn', 'backbone.fpn', 'backbone.body.layer4.2', 'backbone.body.layer4']
+    tune_list = ['roi_heads.box_predictor', 'rpn.head.cls_logits', 'rpn.head.bbox_pred']
 
     main(args, tune_list)
 

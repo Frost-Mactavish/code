@@ -84,7 +84,7 @@ class DIORIncDataset(Dataset):
                 xml = os.path.join(self.xml_dir, line.strip('\n') + '.xml')
                 self.xml_list.append(xml)
 
-                # if len(self.xml_list) == 100:       # for rapid code validation
+                # if len(self.xml_list) == 100:       # for rapid validation
                 #     break
 
         self.class_dict = get_class_dict('DIOR', phase)
