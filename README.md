@@ -30,9 +30,9 @@
 
 ## Base Training
 
-Base training follows the implementation settings in BOSS, yet unable to reproduce the base 15 classes training results, which is 73.3 ~ 75.6 mAP@0.5.
+​		Base training follows the implementation settings in BOSS, yet unable to reproduce the base 15 classes training results, which is 73.3 ~ 75.6 mAP@0.5.
 
-This could be partially attributed to random seeding and sampler.
+​		This could be partially attributed to random seeding and sampler.
 
 | Backbone  | Phase | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] |
 | :-------: | :---: | :----: | :----: | :-----: | :------------: |
@@ -47,7 +47,7 @@ This could be partially attributed to random seeding and sampler.
 
 ## IOD with Fine-Tuning
 
-Tune different combo of components, with weight initialized from model trained on Old 10 classes.
+​		Tune different combo of components, with weight initialized from model trained on Old 10 classes.
 
 <center><b>Tune with ResNet50 as backbone</b></center>
 
@@ -77,7 +77,7 @@ Tune different combo of components, with weight initialized from model trained o
 |  * w/ backbone4  |  73.5   |      43.2      | 34.76M |
 |       full       |  76.5   |      48.2      | 62.07M |
 
-Now we can draw conclusion that **it achieves an optimal balance between performance and parameter-efficiency when RoI Head, RPN and FPN are tuned during new task learning**.
+​		Now we can draw conclusion that **it achieves an optimal balance between performance and parameter-efficiency when RoI Head, RPN and FPN are tuned during new task learning**.
 
 
 
@@ -93,28 +93,37 @@ Now we can draw conclusion that **it achieves an optimal balance between perform
 
 ## IOD with Low Rank Adaptation
 
-`Low Rank Adaptation(LoRA)` is a Parameter Efficient Fine-Tuning(PEFT) technique based on matrix decomposition. LoRA approximates large weight matrix with low-rank matrices, achieving performance comparable to full-tuning with significantly fewer trainable parameters.
-
-`Original LoRA`  decomposes arbitrary weight matrix into two low-rank matrices, name it linear, embedding or convolution layer, and later combines them with simple matrix element-wise addition.
-
-A variant of LoRA, namely `Low-Rank Hadamard Product (LoHa)`, is similar to LoRA except it approximates the large weight matrix with more low-rank matrices and combines them with the Hadamard product. This method is even more parameter-efficient than LoRA and achieves comparable performance.
-
-Besides, researchers have implemented LoRA modules particularly for convolution layers, named `ConvLoRA`.
+​		`Low Rank Adaptation(LoRA)` is a Parameter Efficient Fine-Tuning(PEFT) technique based on matrix decomposition. LoRA approximates large weight matrix with low-rank matrices, achieving performance comparable to full-tuning with significantly fewer trainable parameters.
 
 
 
-For `Original LoRA`, we make modification based on the implementation by [Microsoft](https://github.com/microsoft/LoRA/blob/main/loralib/layers.py), and only add it as a side branch to a pretrained model. Experiment settings remain the same as in the base training phase.
+​		`Original LoRA`  decomposes arbitrary weight matrix into two low-rank matrices, name it linear, embedding or convolution layer, and later combines them with simple matrix element-wise addition.
 
-For `LoHa`, we follow the implementation given by [LyCORIS](https://github.com/KohakuBlueleaf/LyCORIS/blob/eb460098187f752a5d66406d3affade6f0a07ece/lycoris/modules/loha.py), which features reimplemented PyTorch AutoGrad for **CP and Tucker decomposition** for tensors. The very same AutoGrad implementation is quoted by [Huggingface Peft](https://github.com/huggingface/peft/blob/3f9ce553e21569e21269b5ba91d7390f7229199a/src/peft/tuners/loha/layer.py#L293).
+​		A variant of LoRA, namely `Low-Rank Hadamard Product (LoHa)`, is similar to LoRA except it approximates the large weight matrix with more low-rank matrices and combines them with the Hadamard product. This method is even more parameter-efficient than LoRA and achieves comparable performance.
 
-For `ConvLoRA`, we follow the implementation given by [ConvLoRA](https://github.com/aleemsidra/ConvLoRA/blob/17da2f3391afafa8e57be0d09f21d72736208d6b/LoRA/loralib/layers.py#L246).
+​		Besides, researchers have implemented LoRA modules particularly for convolution layers, named `ConvLoRA`.
+
+
+
+​		For `Original LoRA`, we make modification based on the implementation by [Microsoft](https://github.com/microsoft/LoRA/blob/main/loralib/layers.py), and only add it as a side branch to a pretrained model. Experiment settings remain the same as in the base training phase.
+
+​		For `LoHa`, we follow the implementation given by [LyCORIS](https://github.com/KohakuBlueleaf/LyCORIS/blob/eb460098187f752a5d66406d3affade6f0a07ece/lycoris/modules/loha.py), which features reimplemented PyTorch AutoGrad for **CP and Tucker decomposition** for tensors. The very same AutoGrad implementation is quoted by [Huggingface Peft](https://github.com/huggingface/peft/blob/3f9ce553e21569e21269b5ba91d7390f7229199a/src/peft/tuners/loha/layer.py#L293).
+
+​		For `ConvLoRA`, we follow the implementation given by [ConvLoRA](https://github.com/aleemsidra/ConvLoRA/blob/17da2f3391afafa8e57be0d09f21d72736208d6b/LoRA/loralib/layers.py#L246).
+
+
+
+​		By default, LoRA modules are added to all nn.Linear and nn.Conv2d layers in FPN, RPN and RoI Heads, with **rank set to 64 and 8 for linear layer and convolution layer respectively**. However, it doesn't take into account the following issues:
+
+-   LoRA matrix rank should be much smaller than that of the weight matrix to be decomposed, while **the `out_channels` of `rpn.head.cls_logits` and `rpn.head.bbox_pred` are 3 and 12 respectively**. So we keep the original modules here unchanged.
+-   The scalar term before LoRA matrices, which is $alpha/rank$, will cause instability in training with SGD as optimizer, while in original LoRA paper the optimizer was Adam. This [thread](https://zhuanlan.zhihu.com/p/685589734) concludes that he scalar term $alpha/\sqrt{rank}$ should be used.
 
 <center><b>Original LoRA</b></center>
 
 | Backbone  | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] |        Params        |
 | :-------: | :----: | :----: | :-----: | :------------: | :------------------: |
-| ResNet50  |        |        |         |                | 24.26M + 3.46M(LoRA) |
-| ResNet101 |        |        |         |                | 24.25M + 3.46M(LoRA) |
+| ResNet50  |        |        |         |                | 24.26M + 3.43M(LoRA) |
+| ResNet101 |        |        |         |                | 24.25M + 3.43M(LoRA) |
 
 <center><b>Low-Rank Hadamard Product (LoHa)</b></center>
 
@@ -146,7 +155,7 @@ For `ConvLoRA`, we follow the implementation given by [ConvLoRA](https://github.
 
 3.   Gotta revisit papers read before.
 
-
+4.   LoRA converges far too slowly.
 
 
 ## Paper Summary
