@@ -21,6 +21,7 @@
 | :----: | :-----: | :----------: | :--: | :-------------------: | :------------------------------------: | :----: |
 | FPN-IL |  DIOR   |   ResNet50   |  2   |   SGD(2.5e-3, 0.9)    |   decays by 0.1 ervery 20k iteration   |  60k   |
 |  BOSS  |  DIOR   |  ResNet101   |  16  | SGD(2e-2, 0.9, 1e-4 ) |     decays by 0.1 at iteration 15k     |  18k   |
+|  GFSL  |  DIOR   |  ResNet101   |  8   | SGD(1e-2, 0.9, 1e-4)  | decay by 0.1 at iteration 24k and 32k  |  36k   |
 |  ERD   |  COCO   |   ResNet50   |  16  | SGD(1e-2, 0.9, 1e-4)  | decays by 0.1 at iteration 60k and 80k |  90k   |
 |  ABR   |   VOC   |   ResNet50   |  4   | SGD(5e-3, 0.9, 1e-4)  | decays by 0.1 at every 7.5k iteration  |  10k   |
 |  Ours  |  DIOR   | ResNet50/101 |  8   | SGD(1e-2, 0.9, 1e-4)  |       decays by 0.1 at epoch 10        |  15e   |
@@ -56,8 +57,8 @@ Tune different combo of components, with weight initialized from model trained o
 |     Head+RPN     |  58.2   |      30.4      | 16.45M |
 |   Head+RPN+FPN   |  69.2   |      39.6      | 19.79M |
 | * w/ backbone4.2 |  71.2   |      41.5      | 24.26M |
-|  * w/ backbone4  |         |                | 34.76M |
-|       full       |  75.7   |                | 43.08M |
+|  * w/ backbone4  |  72.6   |      43.4      | 34.76M |
+|       full       |  75.7   |      47.5      | 43.08M |
 
 >`*` denotes the combination of `Head+RPN+FPN`
 >
@@ -73,7 +74,7 @@ Tune different combo of components, with weight initialized from model trained o
 |     Head+RPN     |  60.8   |      31.3      | 16.45M |
 |   Head+RPN+FPN   |  71.8   |      40.8      | 19.79M |
 | * w/ backbone4.2 |  72.1   |      41.5      | 24.25M |
-|  * w/ backbone4  |         |                | 34.76M |
+|  * w/ backbone4  |  73.5   |      43.2      | 34.76M |
 |       full       |  76.5   |      48.2      | 62.07M |
 
 Now we can draw conclusion that **it achieves an optimal balance between performance and parameter-efficiency when RoI Head, RPN and FPN are tuned during new task learning**.
@@ -168,3 +169,12 @@ Besides, researchers have implemented LoRA modules particularly for convolution 
 
 #### Overcoming Catastrophic Forgetting in Incremental Object Detection via Elastic Response Distillation (CVPR22)
 
+
+
+## Code Library
+
+[HuggingFace Peft](https://github.com/huggingface/peft)
+
+[LyCORIS](https://github.com/KohakuBlueleaf/LyCORIS?tab=readme-ov-file)
+
+[LoRA implemented by Microsoft](https://github.com/microsoft/LoRA?tab=readme-ov-file)
