@@ -49,33 +49,33 @@
 
 ​		Tune different combo of components, with weight initialized from model trained on Old 10 classes.
 
-<center><b>Tune with ResNet50 as backbone</b></center>
+### Tune with ResNet50 as backbone
 
-|    Component     | mAP@0.5 | mAP@[0.5:0.95] | Params |
-| :--------------: | :-----: | :------------: | :----: |
-|       Head       |  31.9   |      16.5      | 15.26M |
-|     Head+RPN     |  58.2   |      30.4      | 16.45M |
-|   Head+RPN+FPN   |  69.2   |      39.6      | 19.79M |
-| * w/ backbone4.2 |  71.2   |      41.5      | 24.26M |
-|  * w/ backbone4  |  72.6   |      43.4      | 34.76M |
-|       full       |  75.7   |      47.5      | 43.08M |
+|    Component     | mAP@0.5 | mAP@[0.5:0.95] | Trainable Params |
+| :--------------: | :-----: | :------------: | :--------------: |
+|       Head       |  31.9   |      16.5      |      15.26M      |
+|     Head+RPN     |  58.2   |      30.4      |      16.45M      |
+|   Head+RPN+FPN   |  69.2   |      39.6      |      19.79M      |
+| * w/ backbone4.2 |  71.2   |      41.5      |      24.26M      |
+|  * w/ backbone4  |  72.6   |      43.4      |      34.76M      |
+|       full       |  75.7   |      47.5      |      43.08M      |
 
 >`*` denotes the combination of `Head+RPN+FPN`
 >
 >`backbone4.2` denotes the final 3 conv layer of ResNet backbone
 >
->`backbone4` denotes the 4th building block of ResNet backbone, abstrcted by pytorch
+>`backbone4` denotes the 4th building block of ResNet backbone, abstracted by PyTorch
 
-<center><b>Tune with ResNet101 as backbone</b></center>
+### Tune with ResNet101 as backbone
 
-|    Component     | mAP@0.5 | mAP@[0.5:0.95] | Params |
-| :--------------: | :-----: | :------------: | :----: |
-|       Head       |  34.6   |      16.8      | 15.26M |
-|     Head+RPN     |  60.8   |      31.3      | 16.45M |
-|   Head+RPN+FPN   |  71.8   |      40.8      | 19.79M |
-| * w/ backbone4.2 |  72.1   |      41.5      | 24.25M |
-|  * w/ backbone4  |  73.5   |      43.2      | 34.76M |
-|       full       |  76.5   |      48.2      | 62.07M |
+|    Component     | mAP@0.5 | mAP@[0.5:0.95] | Trainable Params |
+| :--------------: | :-----: | :------------: | :--------------: |
+|       Head       |  34.6   |      16.8      |      15.26M      |
+|     Head+RPN     |  60.8   |      31.3      |      16.45M      |
+|   Head+RPN+FPN   |  71.8   |      40.8      |      19.79M      |
+| * w/ backbone4.2 |  72.1   |      41.5      |      24.25M      |
+|  * w/ backbone4  |  73.5   |      43.2      |      34.76M      |
+|       full       |  76.5   |      48.2      |      62.07M      |
 
 ​		Now we can draw conclusion that **it achieves an optimal balance between performance and parameter-efficiency when RoI Head, RPN and FPN are tuned during new task learning**.
 
@@ -83,19 +83,21 @@
 
 ## IOD with Model Merge
 
-|  Merge Method  | mAP@0.5 | mAP@[0.5:0.95] | Comment |
-| :------------: | :-----: | :------------: | :-----: |
-| Simple Average |         |                |         |
-| Fisher Average |         |                |         |
-|   Dare-Ties    |         |                |         |
+|  Merge Method  | mAP@0.5 | mAP@[0.5:0.95] |
+| :------------: | :-----: | :------------: |
+| Simple Average |         |                |
+| Fisher Average |         |                |
+|   Dare-Ties    |         |                |
 
 
 
 ## IOD with Low Rank Adaptation
 
+### Brief Introduction
+
 ​		`Low Rank Adaptation(LoRA)` is a Parameter Efficient Fine-Tuning(PEFT) technique based on matrix decomposition. LoRA approximates large weight matrix with low-rank matrices, achieving performance comparable to full-tuning with significantly fewer trainable parameters.
 
-
+### Variants of LoRA and implementation details
 
 ​		`Original LoRA`  decomposes arbitrary weight matrix into two low-rank matrices, name it linear, embedding or convolution layer, and later combines them with simple matrix element-wise addition.
 
@@ -103,41 +105,67 @@
 
 ​		Besides, researchers have implemented LoRA modules particularly for convolution layers, named `ConvLoRA`.
 
+​		The implementation details of different variants are as follows:
 
+-   For `Original LoRA`, we make modification based on the implementation by [Microsoft](https://github.com/microsoft/LoRA/blob/main/loralib/layers.py), and only add it as a side branch to a pretrained model. Experiment settings remain the same as in the base training phase.
 
-​		For `Original LoRA`, we make modification based on the implementation by [Microsoft](https://github.com/microsoft/LoRA/blob/main/loralib/layers.py), and only add it as a side branch to a pretrained model. Experiment settings remain the same as in the base training phase.
+-   For `LoHa`, we follow the implementation given by [LyCORIS](https://github.com/KohakuBlueleaf/LyCORIS/blob/eb460098187f752a5d66406d3affade6f0a07ece/lycoris/modules/loha.py), which features reimplemented PyTorch AutoGrad for **CP and Tucker decomposition** for tensors. The very same AutoGrad implementation is quoted by [Huggingface Peft](https://github.com/huggingface/peft/blob/3f9ce553e21569e21269b5ba91d7390f7229199a/src/peft/tuners/loha/layer.py#L293).
 
-​		For `LoHa`, we follow the implementation given by [LyCORIS](https://github.com/KohakuBlueleaf/LyCORIS/blob/eb460098187f752a5d66406d3affade6f0a07ece/lycoris/modules/loha.py), which features reimplemented PyTorch AutoGrad for **CP and Tucker decomposition** for tensors. The very same AutoGrad implementation is quoted by [Huggingface Peft](https://github.com/huggingface/peft/blob/3f9ce553e21569e21269b5ba91d7390f7229199a/src/peft/tuners/loha/layer.py#L293).
+-   For `ConvLoRA`, we follow the implementation given by [ConvLoRA](https://github.com/aleemsidra/ConvLoRA/blob/17da2f3391afafa8e57be0d09f21d72736208d6b/LoRA/loralib/layers.py#L246).
 
-​		For `ConvLoRA`, we follow the implementation given by [ConvLoRA](https://github.com/aleemsidra/ConvLoRA/blob/17da2f3391afafa8e57be0d09f21d72736208d6b/LoRA/loralib/layers.py#L246).
+### Matrix decompostion analysis
 
+​		For LoRA decomposition of weight matrix $W \in \mathbb{R}^{(C_{out}, C_{in})}$:
+$$
+\Delta W = BA
+$$
+where $B \in \mathbb{R}^{(C_{out},rank)}$  is 0 initialized, and $A \in \mathbb{R}^{(rank,C_{in})}$ is random Gaussian initialized.
 
+​		Let it be in convolution operation, where convolution weight is shaped as $(C_{out},C_{in},d,d)$ , where $d$ is the kernel_size. Then to LoRA decompose it, let $B \in \mathbb{R}^{d'\times rank}, A \in \mathbb{R}^{rank\times k}$ , so it must satisfy that $BA$ can be reshaped as $(C_{out},C_{in},d,d)$ , so we get the equation as follows
+$$
+d'\times k = C_{out}\times C_{in}\times d\times d
+$$
+
+### Issues
 
 ​		By default, LoRA modules are added to all nn.Linear and nn.Conv2d layers in FPN, RPN and RoI Heads, with **rank set to 64 and 8 for linear layer and convolution layer respectively**. However, it doesn't take into account the following issues:
 
 -   LoRA matrix rank should be much smaller than that of the weight matrix to be decomposed, while **the `out_channels` of `rpn.head.cls_logits` and `rpn.head.bbox_pred` are 3 and 12 respectively**. So we keep the original modules here unchanged.
--   The scalar term before LoRA matrices, which is $alpha/rank$, will cause instability in training with SGD as optimizer, while in original LoRA paper the optimizer was Adam. This [thread](https://zhuanlan.zhihu.com/p/685589734) concludes that he scalar term $alpha/\sqrt{rank}$ should be used.
+-   The scalar term before LoRA matrices, which is $alpha/rank$, will cause instability in training with SGD as optimizer, while in original LoRA paper the optimizer was Adam. This [thread](https://zhuanlan.zhihu.com/p/685589734) concludes that the scalar term $alpha/\sqrt{rank}$ should be used.
 
-<center><b>Original LoRA</b></center>
+$$
+original\ LoRA:\quad h=W_0x+\Delta x = W_0x+\frac{\alpha}{r}BAx \\
+rank\ stable\ LoRA:\quad h=W_0x+\Delta x = W_0x+\frac{\alpha}{\sqrt{r}}BAx
+$$
 
-| Backbone  | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] |        Params        |
-| :-------: | :----: | :----: | :-----: | :------------: | :------------------: |
-| ResNet50  |        |        |         |                | 24.26M + 3.43M(LoRA) |
-| ResNet101 |        |        |         |                | 24.25M + 3.43M(LoRA) |
+​		After dealing with the two issues above, it does emerge effective, with mAP@0.5 from hovering below 20 to 31.48. But still, LoRA module converges far too slowly.	
 
-<center><b>Low-Rank Hadamard Product (LoHa)</b></center>
+​		Another issue comes from a discrepancy in LoRA for convolution layers between Microsoft implementation and ours, where Microsoft multiplies rank by kernel_size
+$$
+rank = rank \times kernel\_size
+$$
+and therefore increases the parameters of matrix $A$ and $B$, maybe in an attempt to get better representation of the original convolution module, but **sees imperceptible improvement over a smaller decomposition matirx.**
 
-| Backbone  | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] |     Params      |
-| :-------: | :----: | :----: | :-----: | :------------: | :-------------: |
-| ResNet50  |        |        |         |                | 24.26M + (LoRA) |
-| ResNet101 |        |        |         |                | 24.25M + (LoRA) |
+### Original LoRA
 
-<center><b>ConvLoRA</b></center>
+| Backbone  | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] | Trainable Params |
+| :-------: | :----: | :----: | :-----: | :------------: | :--------------: |
+| ResNet50  |        |        |         |                |   3.43M/2.12M    |
+| ResNet101 |        |        |         |                |   3.43M/2.12M    |
 
-| Backbone  | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] |     Params      |
-| :-------: | :----: | :----: | :-----: | :------------: | :-------------: |
-| ResNet50  |        |        |         |                | 24.26M + (LoRA) |
-| ResNet101 |        |        |         |                | 24.25M + (LoRA) |
+### Low-Rank Hadamard Product (LoHa)
+
+| Backbone  | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] | Trainable Params |
+| :-------: | :----: | :----: | :-----: | :------------: | :--------------: |
+| ResNet50  |        |        |         |                |                  |
+| ResNet101 |        |        |         |                |                  |
+
+### ConvLoRA
+
+| Backbone  | Old 10 | New 10 | mAP@0.5 | mAP@[0.5:0.95] | Trainable Params |
+| :-------: | :----: | :----: | :-----: | :------------: | :--------------: |
+| ResNet50  |        |        |         |                |                  |
+| ResNet101 |        |        |         |                |                  |
 
 
 
