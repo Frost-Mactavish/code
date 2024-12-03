@@ -138,13 +138,26 @@ original\ LoRA:\quad h=W_0x+\Delta x = W_0x+\frac{\alpha}{r}BAx \\
 rank\ stable\ LoRA:\quad h=W_0x+\Delta x = W_0x+\frac{\alpha}{\sqrt{r}}BAx
 $$
 
-​		After dealing with the two issues above, it does emerge effective, with mAP@0.5 from hovering below 20 to 31.48. But still, LoRA module converges far too slowly.	
+​		After dealing with the two issues above, it does emerge effective, with mAP@0.5 from hovering below 20 to 31.48. But still, LoRA module converges far too slowly. **Note that rank for Linear LoRA layers are set to 8, which is far smaller  than that of the Linear layer shape, so we will try a larger rank latter.**
 
 ​		Another issue comes from a discrepancy in LoRA for convolution layers between Microsoft implementation and ours, where Microsoft multiplies rank by kernel_size
 $$
 rank = rank \times kernel\_size
 $$
-and therefore increases the parameters of matrix $A$ and $B$, maybe in an attempt to get better representation of the original convolution module, but **sees imperceptible improvement over a smaller decomposition matirx.**
+​		It increases the parameters of matrix $A$ and $B$, maybe in an attempt to get better representation of the original convolution module, but **sees imperceptible improvement over a smaller decomposition matirx** under our experiment settings.
+
+​		In Faster RCNN, the `FPN, RPN and RoI` Head components are almost convolution layers with $C_{min}=256$ , with only the last layer of `RoI Head` being linear layer with $C_{min}=1024$. Since 8 might be much too small compared to the linear layer, it's reansonable to set a bigger rank value.
+
+For ResNet101
+
+| Alpha | Linear Rank | Conv Rank | mAP@0.5 | mAP@[0.5:0.95] | Trainable Params |  Implementation   |
+| :---: | :---------: | :-------: | :-----: | :------------: | :--------------: | :---------------: |
+|   1   |      8      |    64     |   <20   |       /        |        /         |     original      |
+|   1   |      8      |    64     |  31.5   |      13.8      |      3.43M       |  MS, with rsLoRA  |
+|   1   |      8      |    64     |  30.8   |      13.5      |      2.12M       | boss, with rsLoRA |
+|   1   |     64      |    64     |  27.3   |      11.8      |                  | boss, with rsLoRA |
+
+
 
 ### Original LoRA
 
@@ -173,7 +186,7 @@ and therefore increases the parameters of matrix $A$ and $B$, maybe in an attemp
 
 1.   Evaluation results over all classes are 0 after expanding classifer branches, presumably due to class misalignment
 
-     >This occurs even when I keep the weight and architecture of the original model and just zero-pad the expanded branch of the classifier, which shouldnt have disrupted the class order.
+     >This occurs even when we keep the weight and architecture of the original model and just zero-pad the expanded branch of the classifier, which shouldnt have disrupted the class order.
      >
      >Another factor, that there could be misalignment of FPN mapping layer, could also contribute to an overall fall-behind.
 
@@ -213,12 +226,3 @@ and therefore increases the parameters of matrix $A$ and $B$, maybe in an attemp
 
 
 #### Overcoming Catastrophic Forgetting in Incremental Object Detection via Elastic Response Distillation (CVPR22)
-
-
-
-## Code Library
-
-[HuggingFace Peft](https://github.com/huggingface/peft)
-
-[LyCORIS](https://github.com/KohakuBlueleaf/LyCORIS?tab=readme-ov-file)
-
