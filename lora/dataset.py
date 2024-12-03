@@ -94,7 +94,7 @@ class DIORIncDataset(Dataset):
 
     def filter_classes(self):
         '''
-        filter annotaion of classes not in the class_dict
+        filter annotation of classes not in the class_dict
         '''
         xml_list = copy.deepcopy(self.xml_list)
         for xml_path in xml_list:

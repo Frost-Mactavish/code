@@ -19,7 +19,8 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, FastRCNN
 class LoRALinear(nn.Module):
     def __init__(self, linear_layer, rank=8, alpha=1, dropout=0):
         super().__init__()
-        
+
+        # inspired by rsLoRA, get the sqrt of rank for training stability
         self.scaling = alpha / math.sqrt(rank)
 
         self.linear = copy.deepcopy(linear_layer)
@@ -30,8 +31,8 @@ class LoRALinear(nn.Module):
         self.dropout = nn.Dropout(p=dropout) if dropout > 0 else lambda x: x
         
         # LoRA Matrix
-        self.lora_A = nn.Parameter(torch.zeros(self.linear.in_features, rank))
-        self.lora_B = nn.Parameter(torch.zeros(rank, self.linear.out_features))
+        self.lora_A = nn.Parameter(torch.empty(self.linear.in_features, rank))
+        self.lora_B = nn.Parameter(torch.empty(rank, self.linear.out_features))
         
         # weight init
         nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
@@ -48,6 +49,7 @@ class LoRAConv2d(nn.Module):
     def __init__(self, conv2d_layer, rank=64, alpha=1, dropout=0):
         super().__init__()
 
+        # inspired by rsLoRA, get the sqrt of rank for training stability
         self.scaling = alpha / math.sqrt(rank)
 
         self.conv = copy.deepcopy(conv2d_layer)
@@ -56,15 +58,21 @@ class LoRAConv2d(nn.Module):
 
         # dropout
         self.dropout = nn.Dropout(p=dropout) if dropout > 0 else lambda x: x
-        
+
+        # # Microsoft Implementation, sees bigger matrix and more params
+        # kernel_size = self.conv.kernel_size[0]
+        # in_features = self.conv.in_channels * kernel_size
+        # rank = rank * kernel_size
+        # out_features = self.conv.out_channels * self.conv.groups * kernel_size
+
+        # specified in BOSS
         kernel_size = self.conv.kernel_size[0]
-        in_features = self.conv.in_channels * kernel_size
-        rank = rank * kernel_size
-        out_features = self.conv.out_channels * self.conv.groups * kernel_size
+        in_features = self.conv.in_channels * kernel_size * kernel_size
+        out_features = self.conv.out_channels
 
         # LoRA Matrix
-        self.lora_A = nn.Parameter(torch.zeros(in_features, rank))
-        self.lora_B = nn.Parameter(torch.zeros(rank, out_features))
+        self.lora_A = nn.Parameter(torch.empty(rank, in_features))
+        self.lora_B = nn.Parameter(torch.empty(out_features, rank))
 
         # weight init
         nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
@@ -73,7 +81,7 @@ class LoRAConv2d(nn.Module):
     def forward(self, x):
         return self.conv._conv_forward(
             x,
-            self.conv.weight + (self.lora_A @ self.lora_B).view(self.conv.weight.shape) * self.scaling,
+            self.conv.weight + (self.lora_B @ self.lora_A).view(self.conv.weight.shape) * self.scaling,
             self.conv.bias
         )
 

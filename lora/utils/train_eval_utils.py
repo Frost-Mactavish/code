@@ -81,6 +81,16 @@ def clear_checkpoints(ckpt_path: str, phase: str):
         os.remove(file)
 
 
+def get_gradients_norm(model):
+    total_norm = 0
+    for p in model.parameters():
+        if p.grad is not None:
+            param_norm = p.grad.data.norm(2)
+            total_norm += param_norm.item() ** 2
+    total_norm = total_norm ** 0.5
+    return total_norm
+
+
 def train_one_epoch(model,
                     optimizer,
                     dataloader,
@@ -124,6 +134,14 @@ def train_one_epoch(model,
         losses = sum(loss for loss in loss_dict.values())
         optimizer.zero_grad()
         losses.backward()
+
+        # monitor gradient
+        grad_norm = get_gradients_norm(model)
+
+        torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=5)
+
+        grad_norm_clip = get_gradients_norm(model)
+
         optimizer.step()
 
         metric_logger.update(loss=losses, **loss)
